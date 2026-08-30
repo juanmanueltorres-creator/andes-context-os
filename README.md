@@ -2,7 +2,7 @@
 
 **A small territorial discovery engine for mining and Andean operations.**
 
-V0.1 does not search the web or decide whether a road is safe. It defines strict, versioned contracts that keep questions, territory, source metadata, runtime source state, evidence quality, rights, limitations, and discovery-run lineage separate and auditable.
+V0.2 keeps the strict V0.1 contract core and adds a local deterministic internal-context boundary. It still does not search the web or decide whether a road is safe; questions, territory, source state, evidence, rights, limitations, internal context, and lineage remain separate and auditable.
 
 ## Contract flow
 
@@ -43,6 +43,32 @@ research action != authorization
 - `EvidenceCandidate` as a minimal research projection with provenance, temporal context, territorial relation, corroboration references, and review state.
 - `SourceRegistry` with deterministic canonical hashing and a conservative V0.1 seed registry.
 - `DiscoveryRun` with immutable lineage, registry compatibility checks, adapter versions, observations, missing context, contradictions, warnings, omitted sources, recommended research action, and reproducible run hashing.
+
+## V0.2 — Internal Context Adapter
+
+V0.2 adds a deterministic internal-context boundary backed by a local deterministic catalog of high-density references.
+
+```text
+ResearchIntent + TerritorialScope
+              ↓
+      InternalContextCatalog
+              ↓
+     InternalContextAdapter
+              ↓
+    InternalContextSnapshot
+```
+
+The adapter uses exact categorical matching only (`domain_match`, `activity_match`, `territory_match`). Territorial-specific records require an exact structured territorial reference match. It does not rank context numerically.
+
+`restricted` records are never emitted by V0.2. A matching restricted record produces only the generic message `restricted internal context was omitted`, without exposing its metadata.
+
+V0.2 does not read GitHub or the private vault. Those systems may later become authorized producers of `InternalContextRecord`; they are not runtime dependencies of this release.
+
+```text
+internal context match != evidence validation
+known evidence reference != current operational evidence
+known decision != current authorization
+```
 
 ## Source Registry
 
