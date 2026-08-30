@@ -193,13 +193,19 @@ The core depends on an injectable protocol equivalent to:
 
 ```python
 class ExactContentResolver(Protocol):
-    resolver_id: str
-
     def resolve(self, locator: str) -> ResolvedContextSource:
         ...
 ```
 
-The producer selects a resolver by exact `resolver_id` from an explicit resolver registry supplied by the caller.
+The caller supplies an explicit mapping:
+
+```text
+resolver_id -> ExactContentResolver
+```
+
+The mapping key is the single source of truth for resolver identity. The resolver object does not declare a second independent `resolver_id` field.
+
+The producer selects a resolver by exact `resolver_id` from that caller-supplied mapping.
 
 No default network resolver exists in V0.3.
 
@@ -445,14 +451,14 @@ InternalContextAdapter.snapshot(...)
 InternalContextSnapshot
 ```
 
-`reviewed_at` remains curated manifest metadata. Resolving a source today does not automatically update its review date.
+`reviewed_at` remains curated manifest metadata. Resolving a source during production does not automatically update its review date.
 
 This distinction is intentional:
 
 ```text
-resolved_at now
+source resolved successfully now
 !=
-reviewed_at now
+source reviewed semantically now
 ```
 
 V0.3 therefore adds no implicit freshness claim.
@@ -526,7 +532,7 @@ Programming/configuration errors that violate the producer's own object contract
 Given:
 
 - the same manifest semantic payload;
-- the same resolver registry identities;
+- the same resolver mapping identities;
 - the same resolved source identities;
 - the same exact source bytes;
 
@@ -574,7 +580,7 @@ Required coverage:
 6. duplicate `context_id` rejected;
 7. malformed/unsupported manifest version rejected;
 8. malformed expected SHA-256 rejected;
-9. exact resolver chosen by `resolver_id`;
+9. exact resolver chosen by `resolver_id` mapping key;
 10. resolver not registered yields sanitized failure and no record;
 11. resolver exception yields `resolution_failed` without raw exception leakage;
 12. malformed resolver return yields `invalid_resolved_source`;
