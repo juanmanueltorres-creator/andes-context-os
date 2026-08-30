@@ -178,6 +178,8 @@ class ContextSelection:
         fields = {"context_id", "kind", "title", "reference", "summary", "match_reasons", "limitations"}
         require_fields(payload, required=fields, allowed=fields)
         raw = require_string_list(payload["match_reasons"], "match_reasons", allow_empty=False)
+        if len(raw) != len(set(raw)):
+            raise ValueError("duplicate match_reasons")
         reasons = tuple(
             sorted(
                 (_enum_value(MatchReason, item, "match_reasons") for item in raw),
@@ -278,6 +280,9 @@ class InternalContextSnapshot:
         scope_id = require_text(territorial_scope_id, "territorial_scope_id")
         question_ref = _optional_text(question_profile_ref, "question_profile_ref")
         missing = require_string_list(list(missing_context), "missing_context")
+        context_ids = [selection.context_id for selection in selections]
+        if len(context_ids) != len(set(context_ids)):
+            raise ValueError("duplicate context_id in internal context snapshot")
         ordered = tuple(sorted(selections, key=lambda item: (item.kind.value, item.context_id)))
         buckets: dict[str, list[ContextSelection]] = {field: [] for field in _CATEGORY_FIELDS}
         for selection in ordered:
@@ -360,6 +365,14 @@ class InternalContextSnapshot:
                     raise ValueError(f"{category} contains selection with incompatible kind")
                 parsed.append(selection)
             parsed_categories[category] = tuple(sorted(parsed, key=lambda item: item.context_id))
+
+        context_ids = [
+            selection.context_id
+            for category in _CATEGORY_FIELDS
+            for selection in parsed_categories[category]
+        ]
+        if len(context_ids) != len(set(context_ids)):
+            raise ValueError("duplicate context_id in internal context snapshot")
 
         snapshot = cls(
             contract_version=contract_version,
