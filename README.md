@@ -60,6 +60,8 @@ ResearchIntent + TerritorialScope
 
 The adapter uses exact categorical matching only (`domain_match`, `activity_match`, `territory_match`). Territorial-specific records require an exact structured territorial reference match. It does not rank context numerically.
 
+Territorial references use typed identities such as `country:AR`, `admin:AR:1:J`, `project:<ref>`, `corridor:<ref>`, `segment:<ref>`, and `geometry:<ref>` so equal-looking codes from different countries or reference types cannot cross-match.
+
 `restricted` records are never emitted by V0.2. A matching restricted record produces only the generic message `restricted internal context was omitted`, without exposing its metadata.
 
 V0.2 does not read GitHub or the private vault. Those systems may later become authorized producers of `InternalContextRecord`; they are not runtime dependencies of this release.
