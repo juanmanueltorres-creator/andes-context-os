@@ -170,3 +170,21 @@ def test_snapshot_from_dict_rejects_duplicate_context_ids():
     payload["snapshot_id"] = sha256_json({key: value for key, value in payload.items() if key != "snapshot_id"})
     with pytest.raises(ValueError, match="duplicate context_id"):
         InternalContextSnapshot.from_dict(payload)
+
+
+def test_record_reviewed_at_is_projected_into_snapshot_identity():
+    earlier = InternalContextRecord.from_dict(VALID_RECORD)
+    later = InternalContextRecord.from_dict(
+        {**VALID_RECORD, "reviewed_at": "2026-08-30T11:00:00-03:00"}
+    )
+    reasons = (MatchReason.ACTIVITY_MATCH, MatchReason.DOMAIN_MATCH)
+
+    earlier_selection = ContextSelection.from_record(earlier, reasons)
+    later_selection = ContextSelection.from_record(later, reasons)
+
+    assert earlier_selection.to_dict()["reviewed_at"] == VALID_RECORD["reviewed_at"]
+    assert later_selection.to_dict()["reviewed_at"] == "2026-08-30T11:00:00-03:00"
+
+    earlier_snapshot = build_snapshot(selections=(earlier_selection.to_dict(),))
+    later_snapshot = build_snapshot(selections=(later_selection.to_dict(),))
+    assert earlier_snapshot.snapshot_id != later_snapshot.snapshot_id
