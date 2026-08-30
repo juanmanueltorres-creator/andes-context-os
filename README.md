@@ -62,6 +62,8 @@ The adapter uses exact categorical matching only (`domain_match`, `activity_matc
 
 Territorial references use typed identities such as `country:AR`, `admin:AR:1:J`, `project:<ref>`, `corridor:<ref>`, `segment:<ref>`, and `geometry:<ref>` so equal-looking codes from different countries or reference types cannot cross-match.
 
+`ContextSelection` rejects duplicate match reasons, and `InternalContextSnapshot` rejects duplicate `context_id` values in both build and parse paths so semantically duplicated snapshots cannot acquire distinct hashes.
+
 `restricted` records are never emitted by V0.2. A matching restricted record produces only the generic message `restricted internal context was omitted`, without exposing its metadata.
 
 V0.2 does not read GitHub or the private vault. Those systems may later become authorized producers of `InternalContextRecord`; they are not runtime dependencies of this release.
