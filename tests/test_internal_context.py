@@ -90,3 +90,52 @@ def test_catalog_load_rejects_malformed_json_without_echoing_contents(tmp_path):
     with pytest.raises(ValueError, match="invalid internal context catalog JSON") as exc:
         InternalContextCatalog.load(path)
     assert "secret-summary" not in str(exc.value)
+
+from andes_context_os.internal_context import ContextSelection, InternalContextSnapshot, MatchReason
+
+VALID_SELECTION = {
+    "context_id": "repo-geoplatform-access",
+    "kind": "repository",
+    "title": "GeoPlatform access capability",
+    "reference": "repo:GeoPlatform#access",
+    "summary": "Existing territorial access capability worth inspecting before a new spike.",
+    "match_reasons": ["activity_match", "domain_match"],
+    "limitations": ["Reference does not establish current road condition"],
+}
+
+
+def build_snapshot(*, selections=(VALID_SELECTION,), missing_context=(), generated_at="2026-08-30T10:00:00-03:00"):
+    return InternalContextSnapshot.build(
+        generated_at=generated_at,
+        research_intent_id="intent-filo-access-001",
+        question_profile_ref="question-radar:profile-001",
+        territorial_scope_id="scope-ar-j",
+        selections=tuple(ContextSelection.from_dict(item) for item in selections),
+        missing_context=tuple(missing_context),
+    )
+
+
+def test_selection_sorts_reasons_and_rejects_scores():
+    payload = {**VALID_SELECTION, "match_reasons": ["domain_match", "activity_match"]}
+    selection = ContextSelection.from_dict(payload)
+    assert selection.match_reasons == (MatchReason.ACTIVITY_MATCH, MatchReason.DOMAIN_MATCH)
+    with pytest.raises(ValueError, match="unknown fields: relevance_score"):
+        ContextSelection.from_dict({**VALID_SELECTION, "relevance_score": 0.9})
+
+
+def test_snapshot_id_is_lowercase_sha256_and_round_trips():
+    snapshot = build_snapshot()
+    assert len(snapshot.snapshot_id) == 64
+    assert set(snapshot.snapshot_id) <= set("0123456789abcdef")
+    assert InternalContextSnapshot.from_dict(snapshot.to_dict()).to_dict() == snapshot.to_dict()
+
+
+def test_snapshot_id_changes_when_content_changes():
+    assert build_snapshot(generated_at="2026-08-30T10:00:00-03:00").snapshot_id != build_snapshot(generated_at="2026-08-30T10:01:00-03:00").snapshot_id
+
+
+def test_snapshot_rejects_tampered_id():
+    payload = build_snapshot().to_dict()
+    payload["snapshot_id"] = "0" * 64
+    with pytest.raises(ValueError, match="snapshot_id mismatch"):
+        InternalContextSnapshot.from_dict(payload)
