@@ -3,11 +3,15 @@ import json
 
 import pytest
 
+from andes_context_os.hashing import sha256_json
 from andes_context_os.internal_context import (
+    ContextSelection,
     ContextSensitivity,
     InternalContextCatalog,
     InternalContextKind,
     InternalContextRecord,
+    InternalContextSnapshot,
+    MatchReason,
 )
 
 VALID_RECORD = {
@@ -91,7 +95,6 @@ def test_catalog_load_rejects_malformed_json_without_echoing_contents(tmp_path):
         InternalContextCatalog.load(path)
     assert "secret-summary" not in str(exc.value)
 
-from andes_context_os.internal_context import ContextSelection, InternalContextSnapshot, MatchReason
 
 VALID_SELECTION = {
     "context_id": "repo-geoplatform-access",
@@ -138,4 +141,32 @@ def test_snapshot_rejects_tampered_id():
     payload = build_snapshot().to_dict()
     payload["snapshot_id"] = "0" * 64
     with pytest.raises(ValueError, match="snapshot_id mismatch"):
+        InternalContextSnapshot.from_dict(payload)
+
+
+def test_selection_rejects_duplicate_match_reasons():
+    payload = {**VALID_SELECTION, "match_reasons": ["domain_match", "domain_match"]}
+    with pytest.raises(ValueError, match="duplicate match_reasons"):
+        ContextSelection.from_dict(payload)
+
+
+def test_snapshot_build_rejects_duplicate_context_ids():
+    duplicate = ContextSelection.from_dict(VALID_SELECTION)
+    with pytest.raises(ValueError, match="duplicate context_id"):
+        InternalContextSnapshot.build(
+            generated_at="2026-08-30T10:00:00-03:00",
+            research_intent_id="intent-filo-access-001",
+            question_profile_ref="question-radar:profile-001",
+            territorial_scope_id="scope-ar-j",
+            selections=(duplicate, duplicate),
+            missing_context=(),
+        )
+
+
+def test_snapshot_from_dict_rejects_duplicate_context_ids():
+    snapshot = build_snapshot()
+    payload = snapshot.to_dict()
+    payload["related_repositories"].append(dict(payload["related_repositories"][0]))
+    payload["snapshot_id"] = sha256_json({key: value for key, value in payload.items() if key != "snapshot_id"})
+    with pytest.raises(ValueError, match="duplicate context_id"):
         InternalContextSnapshot.from_dict(payload)
