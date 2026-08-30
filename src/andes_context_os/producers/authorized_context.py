@@ -211,6 +211,17 @@ class AuthorizedContextProduction:
         }
 
 
+def _failure(
+    entry: AuthorizedContextManifestEntry,
+    reason: ContextProductionFailureReason,
+) -> ContextProductionFailure:
+    return ContextProductionFailure(
+        entry_id=entry.entry_id,
+        context_id=entry.context.context_id,
+        reason=reason,
+    )
+
+
 class AuthorizedContextProducer:
     def produce(
         self,
@@ -222,25 +233,66 @@ class AuthorizedContextProducer:
         failures: list[ContextProductionFailure] = []
 
         for entry in manifest.entries:
+            if entry.resolver_id not in resolvers:
+                failures.append(
+                    _failure(
+                        entry,
+                        ContextProductionFailureReason.RESOLVER_NOT_REGISTERED,
+                    )
+                )
+                continue
+
             resolver = resolvers[entry.resolver_id]
-            resolved = resolver.resolve(entry.source_locator)
-            source_identity = _require_exact_text(
-                resolved.source_identity,
-                "source_identity",
-            )
+            try:
+                resolved = resolver.resolve(entry.source_locator)
+            except Exception:
+                failures.append(
+                    _failure(entry, ContextProductionFailureReason.RESOLUTION_FAILED)
+                )
+                continue
+
+            if not isinstance(resolved, ResolvedContextSource):
+                failures.append(
+                    _failure(entry, ContextProductionFailureReason.INVALID_RESOLVED_SOURCE)
+                )
+                continue
+
+            try:
+                source_identity = _require_exact_text(
+                    resolved.source_identity,
+                    "source_identity",
+                )
+            except ValueError:
+                failures.append(
+                    _failure(entry, ContextProductionFailureReason.INVALID_RESOLVED_SOURCE)
+                )
+                continue
+
             if not isinstance(resolved.content, bytes):
-                raise ValueError("resolved content must be bytes")
+                failures.append(
+                    _failure(entry, ContextProductionFailureReason.INVALID_RESOLVED_SOURCE)
+                )
+                continue
+
             if (
                 entry.expected_source_identity is not None
                 and source_identity != entry.expected_source_identity
             ):
-                raise ValueError("source identity mismatch")
+                failures.append(
+                    _failure(entry, ContextProductionFailureReason.SOURCE_IDENTITY_MISMATCH)
+                )
+                continue
+
             actual_hash = sha256(resolved.content).hexdigest()
             if (
                 entry.expected_content_sha256 is not None
                 and actual_hash != entry.expected_content_sha256
             ):
-                raise ValueError("content hash mismatch")
+                failures.append(
+                    _failure(entry, ContextProductionFailureReason.CONTENT_HASH_MISMATCH)
+                )
+                continue
+
             records.append(entry.context)
             receipts.append(
                 ContextSourceReceipt(
