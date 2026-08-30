@@ -89,7 +89,7 @@ private manifest
 
 The manifest, not the resolver, decides what may be read. The producer does not search GitHub or the private vault, enumerate repositories, recursively scan directories, follow links, infer neighboring files, or summarize source content. Concrete GitHub/vault resolvers are runtime concerns and are not dependencies of the public core.
 
-Curated context metadata remains separate from source-resolution provenance. Source content is not copied into the produced catalog, resolver exceptions are sanitized, and failed entries emit neither records nor receipts.
+Curated context metadata remains separate from source-resolution provenance; source content is not copied into the produced catalog, resolver exceptions are sanitized, and failed entries emit neither records nor receipts.
 
 ## Source Registry
 
