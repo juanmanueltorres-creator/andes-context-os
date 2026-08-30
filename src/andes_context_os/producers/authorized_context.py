@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
+from hashlib import sha256
 import json
 from pathlib import Path
 import re
-from typing import Any
+from typing import Any, Mapping, Protocol
 
 from andes_context_os.common import require_fields, require_text
-from andes_context_os.internal_context import InternalContextRecord
+from andes_context_os.internal_context import (
+    CATALOG_VERSION,
+    InternalContextCatalog,
+    InternalContextRecord,
+)
 
 MANIFEST_VERSION = "0.1"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -128,3 +134,144 @@ class AuthorizedContextManifest:
             "manifest_version": self.manifest_version,
             "entries": [item.to_dict() for item in self.entries],
         }
+
+
+class ContextProductionStatus(StrEnum):
+    COMPLETE = "complete"
+    PARTIAL = "partial"
+    FAILED = "failed"
+
+
+class ContextProductionFailureReason(StrEnum):
+    RESOLVER_NOT_REGISTERED = "resolver_not_registered"
+    RESOLUTION_FAILED = "resolution_failed"
+    SOURCE_IDENTITY_MISMATCH = "source_identity_mismatch"
+    CONTENT_HASH_MISMATCH = "content_hash_mismatch"
+    INVALID_RESOLVED_SOURCE = "invalid_resolved_source"
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedContextSource:
+    source_identity: str
+    content: bytes
+
+
+class ExactContentResolver(Protocol):
+    def resolve(self, locator: str) -> ResolvedContextSource:
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class ContextSourceReceipt:
+    entry_id: str
+    context_id: str
+    resolver_id: str
+    source_identity: str
+    source_content_sha256: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "entry_id": self.entry_id,
+            "context_id": self.context_id,
+            "resolver_id": self.resolver_id,
+            "source_identity": self.source_identity,
+            "source_content_sha256": self.source_content_sha256,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class ContextProductionFailure:
+    entry_id: str
+    context_id: str
+    reason: ContextProductionFailureReason
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "entry_id": self.entry_id,
+            "context_id": self.context_id,
+            "reason": self.reason.value,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class AuthorizedContextProduction:
+    manifest_version: str
+    status: ContextProductionStatus
+    catalog: InternalContextCatalog
+    receipts: tuple[ContextSourceReceipt, ...]
+    failures: tuple[ContextProductionFailure, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "manifest_version": self.manifest_version,
+            "status": self.status.value,
+            "catalog": self.catalog.to_dict(),
+            "receipts": [item.to_dict() for item in self.receipts],
+            "failures": [item.to_dict() for item in self.failures],
+        }
+
+
+class AuthorizedContextProducer:
+    def produce(
+        self,
+        manifest: AuthorizedContextManifest,
+        resolvers: Mapping[str, ExactContentResolver],
+    ) -> AuthorizedContextProduction:
+        records: list[InternalContextRecord] = []
+        receipts: list[ContextSourceReceipt] = []
+        failures: list[ContextProductionFailure] = []
+
+        for entry in manifest.entries:
+            resolver = resolvers[entry.resolver_id]
+            resolved = resolver.resolve(entry.source_locator)
+            source_identity = _require_exact_text(
+                resolved.source_identity,
+                "source_identity",
+            )
+            if not isinstance(resolved.content, bytes):
+                raise ValueError("resolved content must be bytes")
+            if (
+                entry.expected_source_identity is not None
+                and source_identity != entry.expected_source_identity
+            ):
+                raise ValueError("source identity mismatch")
+            actual_hash = sha256(resolved.content).hexdigest()
+            if (
+                entry.expected_content_sha256 is not None
+                and actual_hash != entry.expected_content_sha256
+            ):
+                raise ValueError("content hash mismatch")
+            records.append(entry.context)
+            receipts.append(
+                ContextSourceReceipt(
+                    entry_id=entry.entry_id,
+                    context_id=entry.context.context_id,
+                    resolver_id=entry.resolver_id,
+                    source_identity=source_identity,
+                    source_content_sha256=actual_hash,
+                )
+            )
+
+        catalog = InternalContextCatalog(
+            catalog_version=CATALOG_VERSION,
+            records=tuple(sorted(records, key=lambda item: item.context_id)),
+        )
+        if not manifest.entries or len(records) == len(manifest.entries):
+            status = ContextProductionStatus.COMPLETE
+        elif records:
+            status = ContextProductionStatus.PARTIAL
+        else:
+            status = ContextProductionStatus.FAILED
+
+        return AuthorizedContextProduction(
+            manifest_version=manifest.manifest_version,
+            status=status,
+            catalog=catalog,
+            receipts=tuple(sorted(receipts, key=lambda item: (item.context_id, item.entry_id))),
+            failures=tuple(
+                sorted(
+                    failures,
+                    key=lambda item: (item.context_id, item.entry_id, item.reason.value),
+                )
+            ),
+        )
