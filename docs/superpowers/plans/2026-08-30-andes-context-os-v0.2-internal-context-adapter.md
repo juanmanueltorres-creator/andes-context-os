@@ -6,7 +6,7 @@
 
 **Architecture:** Contracts, serialization and content hashing live in `src/andes_context_os/internal_context.py`; exact selection logic lives in `src/andes_context_os/adapters/internal_context.py`. The adapter never reads GitHub, the private vault, a database, an LLM or an external service. It emits categorical match reasons only and never promotes matched context into evidence or authorization.
 
-**Tech Stack:** Python 3.11+, stdlib only (`dataclasses`, `enum.StrEnum`, `json`, `pathlib`, `re`), existing `andes_context_os.common` helpers, existing `sha256_json()`, pytest >=8,<9, GitHub Actions Python 3.11.
+**Tech Stack:** Python 3.11+, stdlib only (`dataclasses`, `enum.StrEnum`, `json`, `pathlib`, `re`), existing `andes_context_os.common` helpers, existing `andes_context_os.hashing.sha256_json`, pytest >=8,<9, GitHub Actions Python 3.11.
 
 **Spec:** `docs/superpowers/specs/2026-08-30-andes-context-os-v0.2-internal-context-adapter-design.md`
 
@@ -25,7 +25,7 @@
 - Persisted timestamps are timezone-aware ISO-8601.
 - Territorial-specific records require exact structured territorial equality.
 - Restricted records never enter the snapshot; omission messages leak no restricted metadata or count.
-- Snapshot category order is deterministic and independent of input catalog order.
+- Snapshot ordering is deterministic and independent of input catalog order.
 - `snapshot_id = sha256_json(serialized_snapshot_without_snapshot_id)`.
 - `DiscoveryRun` schema is unchanged; callers may store `snapshot_id` in existing lineage refs.
 - Baseline: V0.1 has 117 tests green. Preserve the full suite after every task.
@@ -34,27 +34,13 @@
 
 ```text
 src/andes_context_os/internal_context.py
-    enums + InternalContextRecord + InternalContextCatalog
-    MatchReason + ContextSelection + InternalContextSnapshot
-
 src/andes_context_os/adapters/__init__.py
 src/andes_context_os/adapters/internal_context.py
-    exact scope refs + eligibility + restricted omission + snapshot orchestration
-
 data/internal_context.example.v0.1.json
-    fictitious/public-safe sample only
-
 tests/test_internal_context.py
-    contract/catalog/snapshot behavior
-
 tests/test_internal_context_adapter.py
-    matching/privacy/determinism behavior
-
 tests/test_internal_context_release.py
-    example + README release claims
-
 README.md
-    V0.2 public surface and explicit non-goals
 ```
 
 ---
@@ -70,8 +56,6 @@ README.md
 - Produces: `InternalContextKind`, `ContextSensitivity`, `InternalContextRecord`, `InternalContextCatalog`.
 
 - [ ] **Step 1: Write RED record tests**
-
-Create `tests/test_internal_context.py`:
 
 ```python
 from copy import deepcopy
@@ -121,11 +105,6 @@ def test_record_rejects_unknown_kind():
         InternalContextRecord.from_dict({**VALID_RECORD, "kind": "memory_blob"})
 
 
-def test_record_rejects_unknown_sensitivity():
-    with pytest.raises(ValueError, match="sensitivity"):
-        InternalContextRecord.from_dict({**VALID_RECORD, "sensitivity": "classified"})
-
-
 def test_record_rejects_unknown_domain():
     with pytest.raises(ValueError, match="domains"):
         InternalContextRecord.from_dict({**VALID_RECORD, "domains": ["magic"]})
@@ -139,11 +118,6 @@ def test_record_rejects_unknown_activity():
 def test_record_rejects_naive_reviewed_at():
     with pytest.raises(ValueError, match="timezone-aware"):
         InternalContextRecord.from_dict({**VALID_RECORD, "reviewed_at": "2026-08-30T09:00:00"})
-
-
-def test_record_accepts_reviewed_at_omitted():
-    payload = {key: value for key, value in VALID_RECORD.items() if key != "reviewed_at"}
-    assert InternalContextRecord.from_dict(payload).reviewed_at is None
 ```
 
 - [ ] **Step 2: Run RED**
@@ -154,9 +128,9 @@ pytest tests/test_internal_context.py -q
 
 Expected: `ModuleNotFoundError: No module named 'andes_context_os.internal_context'`.
 
-- [ ] **Step 3: Implement the minimal record contract**
+- [ ] **Step 3: Implement record contract**
 
-Create `src/andes_context_os/internal_context.py` with:
+Create `src/andes_context_os/internal_context.py` with the existing V0.1 parsing pattern:
 
 ```python
 from __future__ import annotations
@@ -211,9 +185,7 @@ def _enum_list(enum_type: type[StrEnum], value: Any, field: str) -> tuple[StrEnu
 
 
 def _optional_text(value: Any, field: str) -> str | None:
-    if value is None:
-        return None
-    return require_text(value, field)
+    return None if value is None else require_text(value, field)
 
 
 @dataclass(frozen=True, slots=True)
@@ -286,11 +258,7 @@ class InternalContextRecord:
 pytest tests/test_internal_context.py -q
 ```
 
-Expected: record tests pass.
-
-- [ ] **Step 5: Add RED catalog tests, including malformed record objects**
-
-Append:
+- [ ] **Step 5: Add RED catalog tests**
 
 ```python
 VALID_CATALOG = {"catalog_version": "0.1", "records": [VALID_RECORD]}
@@ -309,11 +277,6 @@ def test_catalog_rejects_duplicate_context_ids():
 def test_catalog_rejects_non_object_record():
     with pytest.raises(ValueError, match="each record must be an object"):
         InternalContextCatalog.from_dict({"catalog_version": "0.1", "records": ["secret-text"]})
-
-
-def test_catalog_rejects_unknown_version():
-    with pytest.raises(ValueError, match="catalog_version"):
-        InternalContextCatalog.from_dict({**VALID_CATALOG, "catalog_version": "9.9"})
 
 
 def test_catalog_loads_local_json(tmp_path):
@@ -336,11 +299,7 @@ def test_catalog_load_rejects_malformed_json_without_echoing_contents(tmp_path):
 pytest tests/test_internal_context.py -q
 ```
 
-Expected: failures because `InternalContextCatalog` is not implemented.
-
-- [ ] **Step 7: Implement the catalog exactly**
-
-Add:
+- [ ] **Step 7: Implement catalog**
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -379,43 +338,31 @@ class InternalContextCatalog:
         return cls.from_dict(payload)
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "catalog_version": self.catalog_version,
-            "records": [record.to_dict() for record in self.records],
-        }
+        return {"catalog_version": self.catalog_version, "records": [record.to_dict() for record in self.records]}
 ```
 
-- [ ] **Step 8: Verify Task 1 and regression suite**
+- [ ] **Step 8: Verify + commit Task 1**
 
 ```bash
 pytest tests/test_internal_context.py -q
 pytest -q
 python -m compileall -q src
-```
-
-Expected: Task 1 green, existing 117 tests still green, compile exit 0.
-
-- [ ] **Step 9: Commit Task 1**
-
-```bash
 git add src/andes_context_os/internal_context.py tests/test_internal_context.py
 git commit -m "feat: add internal context catalog contracts"
 ```
 
 ---
 
-### Task 2: Selection projection + content-addressed snapshot
+### Task 2: Selection projection and content-addressed snapshot
 
 **Files:**
 - Modify: `src/andes_context_os/internal_context.py`
 - Modify: `tests/test_internal_context.py`
 
 **Interfaces:**
-- Produces: `MatchReason`, `ContextSelection`, `InternalContextSnapshot.build()`, `InternalContextSnapshot.from_dict()`, `InternalContextSnapshot.to_dict()`.
+- Produces: `MatchReason`, `ContextSelection`, `InternalContextSnapshot.build()`, `.from_dict()`, `.to_dict()`.
 
-- [ ] **Step 1: Add RED selection tests**
-
-Append imports and tests:
+- [ ] **Step 1: Add RED selection/snapshot tests**
 
 ```python
 from andes_context_os.internal_context import ContextSelection, InternalContextSnapshot, MatchReason
@@ -431,34 +378,52 @@ VALID_SELECTION = {
 }
 
 
-def test_selection_round_trips_and_sorts_reasons():
+def build_snapshot(*, selections=(VALID_SELECTION,), missing_context=(), generated_at="2026-08-30T10:00:00-03:00"):
+    return InternalContextSnapshot.build(
+        generated_at=generated_at,
+        research_intent_id="intent-filo-access-001",
+        question_profile_ref="question-radar:profile-001",
+        territorial_scope_id="scope-ar-j",
+        selections=tuple(ContextSelection.from_dict(item) for item in selections),
+        missing_context=tuple(missing_context),
+    )
+
+
+def test_selection_sorts_reasons_and_rejects_scores():
     payload = {**VALID_SELECTION, "match_reasons": ["domain_match", "activity_match"]}
     selection = ContextSelection.from_dict(payload)
     assert selection.match_reasons == (MatchReason.ACTIVITY_MATCH, MatchReason.DOMAIN_MATCH)
-    assert selection.to_dict()["match_reasons"] == ["activity_match", "domain_match"]
-
-
-def test_selection_rejects_empty_match_reasons():
-    with pytest.raises(ValueError, match="match_reasons"):
-        ContextSelection.from_dict({**VALID_SELECTION, "match_reasons": []})
-
-
-def test_selection_rejects_numeric_score_field():
     with pytest.raises(ValueError, match="unknown fields: relevance_score"):
         ContextSelection.from_dict({**VALID_SELECTION, "relevance_score": 0.9})
+
+
+def test_snapshot_id_is_lowercase_sha256_and_round_trips():
+    snapshot = build_snapshot()
+    assert len(snapshot.snapshot_id) == 64
+    assert set(snapshot.snapshot_id) <= set("0123456789abcdef")
+    assert InternalContextSnapshot.from_dict(snapshot.to_dict()).to_dict() == snapshot.to_dict()
+
+
+def test_snapshot_id_changes_when_content_changes():
+    assert build_snapshot(generated_at="2026-08-30T10:00:00-03:00").snapshot_id != build_snapshot(generated_at="2026-08-30T10:01:00-03:00").snapshot_id
+
+
+def test_snapshot_rejects_tampered_id():
+    payload = build_snapshot().to_dict()
+    payload["snapshot_id"] = "0" * 64
+    with pytest.raises(ValueError, match="snapshot_id mismatch"):
+        InternalContextSnapshot.from_dict(payload)
 ```
 
-- [ ] **Step 2: Run selection RED**
+- [ ] **Step 2: Run RED**
 
 ```bash
 pytest tests/test_internal_context.py -q
 ```
 
-Expected: missing `ContextSelection` / `MatchReason`.
+- [ ] **Step 3: Implement projection and snapshot**
 
-- [ ] **Step 3: Implement MatchReason + ContextSelection**
-
-Add:
+Add `from andes_context_os.hashing import sha256_json` and these definitions:
 
 ```python
 class MatchReason(StrEnum):
@@ -481,11 +446,8 @@ class ContextSelection:
     def from_dict(cls, payload: dict[str, Any]) -> "ContextSelection":
         fields = {"context_id", "kind", "title", "reference", "summary", "match_reasons", "limitations"}
         require_fields(payload, required=fields, allowed=fields)
-        raw_reasons = require_string_list(payload["match_reasons"], "match_reasons", allow_empty=False)
-        reasons = tuple(sorted(
-            (_enum_value(MatchReason, item, "match_reasons") for item in raw_reasons),
-            key=lambda item: item.value,
-        ))
+        raw = require_string_list(payload["match_reasons"], "match_reasons", allow_empty=False)
+        reasons = tuple(sorted((_enum_value(MatchReason, item, "match_reasons") for item in raw), key=lambda item: item.value))
         return cls(
             context_id=require_text(payload["context_id"], "context_id"),
             kind=_enum_value(InternalContextKind, payload["kind"], "kind"),
@@ -518,67 +480,8 @@ class ContextSelection:
             "match_reasons": [reason.value for reason in self.match_reasons],
             "limitations": list(self.limitations),
         }
-```
-
-- [ ] **Step 4: Add RED snapshot/hash tests**
-
-Append:
-
-```python
-def build_snapshot(*, selections=(VALID_SELECTION,), missing_context=(), generated_at="2026-08-30T10:00:00-03:00"):
-    return InternalContextSnapshot.build(
-        generated_at=generated_at,
-        research_intent_id="intent-filo-access-001",
-        question_profile_ref="question-radar:profile-001",
-        territorial_scope_id="scope-ar-j",
-        selections=tuple(ContextSelection.from_dict(item) for item in selections),
-        missing_context=tuple(missing_context),
-    )
 
 
-def test_snapshot_id_is_64_lowercase_hex_and_round_trips():
-    snapshot = build_snapshot()
-    assert len(snapshot.snapshot_id) == 64
-    assert snapshot.snapshot_id == snapshot.snapshot_id.lower()
-    assert set(snapshot.snapshot_id) <= set("0123456789abcdef")
-    assert InternalContextSnapshot.from_dict(snapshot.to_dict()).to_dict() == snapshot.to_dict()
-
-
-def test_snapshot_id_changes_when_generated_at_changes():
-    assert build_snapshot(generated_at="2026-08-30T10:00:00-03:00").snapshot_id != build_snapshot(generated_at="2026-08-30T10:01:00-03:00").snapshot_id
-
-
-def test_snapshot_rejects_naive_generated_at():
-    with pytest.raises(ValueError, match="timezone-aware"):
-        build_snapshot(generated_at="2026-08-30T10:00:00")
-
-
-def test_snapshot_rejects_tampered_snapshot_id():
-    payload = build_snapshot().to_dict()
-    payload["snapshot_id"] = "0" * 64
-    with pytest.raises(ValueError, match="snapshot_id mismatch"):
-        InternalContextSnapshot.from_dict(payload)
-
-
-def test_snapshot_buckets_selection_by_kind():
-    snapshot = build_snapshot()
-    assert len(snapshot.related_repositories) == 1
-    assert snapshot.related_vault_notes == ()
-```
-
-- [ ] **Step 5: Run snapshot RED**
-
-```bash
-pytest tests/test_internal_context.py -q
-```
-
-Expected: missing `InternalContextSnapshot`.
-
-- [ ] **Step 6: Implement canonical snapshot construction and validation**
-
-Add `from andes_context_os.hashing import sha256_json`, then:
-
-```python
 _CATEGORY_BY_KIND = {
     InternalContextKind.VAULT_NOTE: "related_vault_notes",
     InternalContextKind.REPOSITORY: "related_repositories",
@@ -597,131 +500,31 @@ def _sha256_text(value: Any, field: str) -> str:
     if _SHA256_RE.fullmatch(text) is None:
         raise ValueError(f"{field} must be 64 lowercase hex characters")
     return text
-
-
-def _parse_selection_list(value: Any, field: str, expected_kind: InternalContextKind) -> tuple[ContextSelection, ...]:
-    if not isinstance(value, list):
-        raise ValueError(f"{field} must be a list")
-    parsed: list[ContextSelection] = []
-    for item in value:
-        if not isinstance(item, dict):
-            raise ValueError(f"each {field} item must be an object")
-        selection = ContextSelection.from_dict(item)
-        if selection.kind is not expected_kind:
-            raise ValueError(f"{field} contains incompatible kind")
-        parsed.append(selection)
-    return tuple(sorted(parsed, key=lambda item: item.context_id))
-
-
-@dataclass(frozen=True, slots=True)
-class InternalContextSnapshot:
-    contract_version: str
-    snapshot_version: str
-    snapshot_id: str
-    generated_at: str
-    research_intent_id: str
-    question_profile_ref: str | None
-    territorial_scope_id: str
-    related_vault_notes: tuple[ContextSelection, ...]
-    related_repositories: tuple[ContextSelection, ...]
-    related_features: tuple[ContextSelection, ...]
-    known_sources: tuple[ContextSelection, ...]
-    known_evidence: tuple[ContextSelection, ...]
-    known_gaps: tuple[ContextSelection, ...]
-    known_decisions: tuple[ContextSelection, ...]
-    missing_context: tuple[str, ...]
-
-    @classmethod
-    def build(
-        cls,
-        *,
-        generated_at: str,
-        research_intent_id: str,
-        question_profile_ref: str | None,
-        territorial_scope_id: str,
-        selections: tuple[ContextSelection, ...],
-        missing_context: tuple[str, ...],
-    ) -> "InternalContextSnapshot":
-        generated = require_aware_iso8601(generated_at, "generated_at")
-        intent_id = require_text(research_intent_id, "research_intent_id")
-        scope_id = require_text(territorial_scope_id, "territorial_scope_id")
-        question_ref = _optional_text(question_profile_ref, "question_profile_ref")
-        missing = require_string_list(list(missing_context), "missing_context")
-        ordered = tuple(sorted(selections, key=lambda item: (item.kind.value, item.context_id)))
-        buckets = {field: [] for field in _CATEGORY_FIELDS}
-        for selection in ordered:
-            buckets[_CATEGORY_BY_KIND[selection.kind]].append(selection)
-        provisional = cls(
-            contract_version=CONTRACT_VERSION,
-            snapshot_version=SNAPSHOT_VERSION,
-            snapshot_id="0" * 64,
-            generated_at=generated,
-            research_intent_id=intent_id,
-            question_profile_ref=question_ref,
-            territorial_scope_id=scope_id,
-            related_vault_notes=tuple(buckets["related_vault_notes"]),
-            related_repositories=tuple(buckets["related_repositories"]),
-            related_features=tuple(buckets["related_features"]),
-            known_sources=tuple(buckets["known_sources"]),
-            known_evidence=tuple(buckets["known_evidence"]),
-            known_gaps=tuple(buckets["known_gaps"]),
-            known_decisions=tuple(buckets["known_decisions"]),
-            missing_context=missing,
-        )
-        snapshot_id = sha256_json(provisional._payload_without_id())
-        return cls(**{**provisional.__dict__, "snapshot_id": snapshot_id})
-
-    def _payload_without_id(self) -> dict[str, Any]:
-        return {
-            "contract_version": self.contract_version,
-            "snapshot_version": self.snapshot_version,
-            "generated_at": self.generated_at,
-            "research_intent_id": self.research_intent_id,
-            "question_profile_ref": self.question_profile_ref,
-            "territorial_scope_id": self.territorial_scope_id,
-            "related_vault_notes": [item.to_dict() for item in self.related_vault_notes],
-            "related_repositories": [item.to_dict() for item in self.related_repositories],
-            "related_features": [item.to_dict() for item in self.related_features],
-            "known_sources": [item.to_dict() for item in self.known_sources],
-            "known_evidence": [item.to_dict() for item in self.known_evidence],
-            "known_gaps": [item.to_dict() for item in self.known_gaps],
-            "known_decisions": [item.to_dict() for item in self.known_decisions],
-            "missing_context": list(self.missing_context),
-        }
 ```
 
-Because `slots=True` dataclasses do not expose `__dict__`, implement the final `build()` return explicitly instead of using the illustrative `provisional.__dict__` expression above:
+Implement `InternalContextSnapshot` as a frozen/slots dataclass with the exact fields from the spec. Its `build()` algorithm is:
 
 ```python
-return cls(
-    contract_version=provisional.contract_version,
-    snapshot_version=provisional.snapshot_version,
-    snapshot_id=snapshot_id,
-    generated_at=provisional.generated_at,
-    research_intent_id=provisional.research_intent_id,
-    question_profile_ref=provisional.question_profile_ref,
-    territorial_scope_id=provisional.territorial_scope_id,
-    related_vault_notes=provisional.related_vault_notes,
-    related_repositories=provisional.related_repositories,
-    related_features=provisional.related_features,
-    known_sources=provisional.known_sources,
-    known_evidence=provisional.known_evidence,
-    known_gaps=provisional.known_gaps,
-    known_decisions=provisional.known_decisions,
-    missing_context=provisional.missing_context,
-)
+generated = require_aware_iso8601(generated_at, "generated_at")
+intent_id = require_text(research_intent_id, "research_intent_id")
+scope_id = require_text(territorial_scope_id, "territorial_scope_id")
+question_ref = _optional_text(question_profile_ref, "question_profile_ref")
+missing = require_string_list(list(missing_context), "missing_context")
+ordered = tuple(sorted(selections, key=lambda item: (item.kind.value, item.context_id)))
+buckets = {field: [] for field in _CATEGORY_FIELDS}
+for selection in ordered:
+    buckets[_CATEGORY_BY_KIND[selection.kind]].append(selection)
 ```
 
-Implement `to_dict()` as:
+Construct a provisional snapshot with `snapshot_id="0" * 64`, compute:
 
 ```python
-def to_dict(self) -> dict[str, Any]:
-    payload = self._payload_without_id()
-    payload["snapshot_id"] = self.snapshot_id
-    return payload
+snapshot_id = sha256_json(provisional._payload_without_id())
 ```
 
-Implement `from_dict()` with these exact rules:
+and return a second immutable instance with that real ID. `_payload_without_id()` must serialize all snapshot fields except `snapshot_id`, with category lists already sorted by `(kind, context_id)`. `to_dict()` returns that payload plus `snapshot_id`.
+
+`from_dict()` must execute this exact validation sequence:
 
 ```python
 fields = {
@@ -734,21 +537,26 @@ fields = {
 require_fields(payload, required=fields, allowed=fields)
 ```
 
-Then validate versions/timestamps/IDs, parse every category with `_parse_selection_list()`, validate `snapshot_id` with `_sha256_text()`, construct the object, recompute `sha256_json(snapshot._payload_without_id())`, and raise `ValueError("snapshot_id mismatch")` unless it equals the supplied ID. Do not hash the supplied `snapshot_id`.
+Then:
 
-- [ ] **Step 7: Verify Task 2 and regression suite**
+1. require `contract_version == CONTRACT_VERSION` and `snapshot_version == SNAPSHOT_VERSION`;
+2. validate `generated_at`, IDs and optional `question_profile_ref`;
+3. require every category to be a JSON list;
+4. parse every category item with `ContextSelection.from_dict()`;
+5. require each selection kind to match its category (`repository` only in `related_repositories`, etc.);
+6. sort each category by `context_id` before constructing the object;
+7. validate supplied ID with `_sha256_text()`;
+8. recompute `sha256_json(snapshot._payload_without_id())`;
+9. raise `ValueError("snapshot_id mismatch")` when recomputed and supplied IDs differ.
+
+Do not include `snapshot_id` in the hash input.
+
+- [ ] **Step 4: Verify + commit Task 2**
 
 ```bash
 pytest tests/test_internal_context.py -q
 pytest -q
 python -m compileall -q src
-```
-
-Expected: Task 2 green, all prior tests green, compile exit 0.
-
-- [ ] **Step 8: Commit Task 2**
-
-```bash
 git add src/andes_context_os/internal_context.py tests/test_internal_context.py
 git commit -m "feat: add content-addressed internal context snapshot"
 ```
@@ -763,55 +571,101 @@ git commit -m "feat: add content-addressed internal context snapshot"
 - Create: `tests/test_internal_context_adapter.py`
 
 **Interfaces:**
-- Consumes: `ResearchIntent`, `TerritorialScope`, `InternalContextCatalog`, `InternalContextRecord`, `ContextSensitivity`, `ContextSelection`, `InternalContextSnapshot`, `MatchReason`.
 - Produces: `InternalContextAdapter.snapshot(intent, scope, catalog, *, generated_at) -> InternalContextSnapshot`.
 
-- [ ] **Step 1: Write RED matching tests**
-
-Create fixtures for one logistics/access intent and an `AR` / San Juan / `agua-negra-v1` corridor scope, then add these tests:
+- [ ] **Step 1: Write RED adapter tests with exact fixtures**
 
 ```python
-def test_generic_record_matches_domain_and_activity():
-    snapshot = build_snapshot(record("generic"))
-    selection = snapshot.related_repositories[0]
-    assert [reason.value for reason in selection.match_reasons] == ["activity_match", "domain_match"]
+import pytest
+
+from andes_context_os.adapters.internal_context import InternalContextAdapter
+from andes_context_os.internal_context import InternalContextCatalog
+from andes_context_os.research import ResearchIntent, TerritorialScope
+
+INTENT = {
+    "contract_version": "0.1",
+    "intent_id": "intent-filo-access-001",
+    "question_raw": "¿Qué sabemos ya sobre acceso minero en este corredor?",
+    "question_canonical": "¿Qué contexto interno existente conviene revisar antes de investigar acceso minero?",
+    "question_profile_ref": "question-radar:profile-001",
+    "domain": "logistics",
+    "activity": "access",
+    "goal": "recover prior internal context before external research",
+    "constraints": ["research only"],
+    "territory_hint": "San Juan Andes",
+    "created_at": "2026-08-30T09:00:00-03:00",
+}
+
+SCOPE = {
+    "contract_version": "0.1",
+    "scope_id": "scope-agua-negra",
+    "countries": ["AR"],
+    "admin_units": [{"country_code": "AR", "admin_level": "1", "official_code": "J", "name": "San Juan", "source_id": "ar_ign_admin"}],
+    "project_refs": [],
+    "corridor_refs": ["agua-negra-v1"],
+    "segment_refs": [],
+    "bbox": None,
+    "geometry_ref": None,
+    "crs": None,
+    "precision": "corridor",
+    "relation_basis": "known_route",
+    "notes": [],
+}
 
 
-def test_territorial_record_requires_exact_territory_match():
-    snapshot = build_snapshot(record("peru-only", territory_refs=["PE"]))
-    assert snapshot.related_repositories == ()
-    assert snapshot.missing_context == (
-        "no internal context matched the current intent and territorial scope",
+def record(context_id, *, kind="repository", domains=None, activities=None, territory_refs=None, sensitivity="public"):
+    return {
+        "contract_version": "0.1",
+        "context_id": context_id,
+        "kind": kind,
+        "title": f"Title {context_id}",
+        "reference": f"ref:{context_id}",
+        "summary": f"Summary {context_id}",
+        "domains": ["logistics"] if domains is None else domains,
+        "activities": ["access"] if activities is None else activities,
+        "territory_refs": [] if territory_refs is None else territory_refs,
+        "tags": [],
+        "sensitivity": sensitivity,
+        "reviewed_at": "2026-08-30T08:00:00-03:00",
+        "limitations": [],
+    }
+
+
+def build_snapshot(*records):
+    return InternalContextAdapter().snapshot(
+        ResearchIntent.from_dict(INTENT),
+        TerritorialScope.from_dict(SCOPE),
+        InternalContextCatalog.from_dict({"catalog_version": "0.1", "records": list(records)}),
+        generated_at="2026-08-30T10:00:00-03:00",
     )
 
 
-def test_exact_corridor_match_adds_territory_reason():
+def test_territorial_record_requires_exact_match():
+    snapshot = build_snapshot(record("peru-only", territory_refs=["PE"]))
+    assert snapshot.related_repositories == ()
+
+
+def test_exact_corridor_match_preserves_all_reasons():
     snapshot = build_snapshot(record("agua-negra", territory_refs=["agua-negra-v1"]))
     assert [reason.value for reason in snapshot.related_repositories[0].match_reasons] == [
         "activity_match", "domain_match", "territory_match"
     ]
 
 
-def test_territory_only_record_matches_when_semantic_vocabularies_are_empty():
-    snapshot = build_snapshot(record(
-        "corridor-note", kind="vault_note", domains=[], activities=[], territory_refs=["agua-negra-v1"]
-    ))
+def test_territory_only_record_can_match():
+    snapshot = build_snapshot(record("corridor-note", kind="vault_note", domains=[], activities=[], territory_refs=["agua-negra-v1"]))
     assert [reason.value for reason in snapshot.related_vault_notes[0].match_reasons] == ["territory_match"]
 ```
 
-The local `record()` fixture must produce strict `InternalContextRecord` dicts; `build_snapshot()` must parse `ResearchIntent`, `TerritorialScope`, `InternalContextCatalog` and call `InternalContextAdapter().snapshot(..., generated_at="2026-08-30T10:00:00-03:00")`.
-
-- [ ] **Step 2: Run adapter RED**
+- [ ] **Step 2: Run RED**
 
 ```bash
 pytest tests/test_internal_context_adapter.py -q
 ```
 
-Expected: module missing for `andes_context_os.adapters.internal_context`.
+- [ ] **Step 3: Implement adapter**
 
-- [ ] **Step 3: Implement exact matching and eligibility**
-
-Create empty `src/andes_context_os/adapters/__init__.py`, then `src/andes_context_os/adapters/internal_context.py`:
+Create empty `src/andes_context_os/adapters/__init__.py` and:
 
 ```python
 from __future__ import annotations
@@ -856,40 +710,32 @@ def _eligible(record: InternalContextRecord, reasons: tuple[MatchReason, ...]) -
     reason_set = set(reasons)
     territory_match = MatchReason.TERRITORY_MATCH in reason_set
     territorial_gate = not record.territory_refs or territory_match
-    if record.domains or record.activities:
-        semantic_gate = bool(reason_set & {MatchReason.DOMAIN_MATCH, MatchReason.ACTIVITY_MATCH})
-    else:
-        semantic_gate = territory_match
+    semantic_gate = (
+        bool(reason_set & {MatchReason.DOMAIN_MATCH, MatchReason.ACTIVITY_MATCH})
+        if record.domains or record.activities
+        else territory_match
+    )
     return territorial_gate and semantic_gate
 
 
 class InternalContextAdapter:
-    def snapshot(
-        self,
-        intent: ResearchIntent,
-        scope: TerritorialScope,
-        catalog: InternalContextCatalog,
-        *,
-        generated_at: str,
-    ) -> InternalContextSnapshot:
-        refs = _scope_refs(scope)
+    def snapshot(self, intent: ResearchIntent, scope: TerritorialScope, catalog: InternalContextCatalog, *, generated_at: str) -> InternalContextSnapshot:
+        scope_refs = _scope_refs(scope)
         selections: list[ContextSelection] = []
         restricted_omitted = False
-        for record in catalog.records:
-            reasons = _match_reasons(record, intent, refs)
-            if not _eligible(record, reasons):
+        for item in catalog.records:
+            reasons = _match_reasons(item, intent, scope_refs)
+            if not _eligible(item, reasons):
                 continue
-            if record.sensitivity is ContextSensitivity.RESTRICTED:
+            if item.sensitivity is ContextSensitivity.RESTRICTED:
                 restricted_omitted = True
                 continue
-            selections.append(ContextSelection.from_record(record, reasons))
-
+            selections.append(ContextSelection.from_record(item, reasons))
         missing: list[str] = []
         if not selections:
             missing.append(NO_MATCH_MESSAGE)
         if restricted_omitted:
             missing.append(RESTRICTED_OMISSION_MESSAGE)
-
         return InternalContextSnapshot.build(
             generated_at=generated_at,
             research_intent_id=intent.intent_id,
@@ -900,34 +746,24 @@ class InternalContextAdapter:
         )
 ```
 
-- [ ] **Step 4: Run matching GREEN**
-
-```bash
-pytest tests/test_internal_context_adapter.py -q
-```
-
-Expected: matching tests pass.
-
-- [ ] **Step 5: Add RED privacy/determinism tests**
-
-Append:
+- [ ] **Step 4: Add privacy/determinism tests**
 
 ```python
-def test_restricted_match_is_omitted_without_metadata_leakage():
+def test_restricted_match_is_non_emitting_and_non_leaking():
     secret_id = "restricted-secret-id"
     snapshot = build_snapshot(record(secret_id, kind="known_evidence", territory_refs=["agua-negra-v1"], sensitivity="restricted"))
-    serialized = repr(snapshot.to_dict())
+    text = repr(snapshot.to_dict())
     assert snapshot.known_evidence == ()
     assert snapshot.missing_context == (
         "no internal context matched the current intent and territorial scope",
         "restricted internal context was omitted",
     )
-    assert secret_id not in serialized
-    assert f"ref:{secret_id}" not in serialized
-    assert f"Summary {secret_id}" not in serialized
+    assert secret_id not in text
+    assert f"ref:{secret_id}" not in text
+    assert f"Summary {secret_id}" not in text
 
 
-def test_restricted_omission_is_reported_once():
+def test_restricted_message_is_emitted_once():
     snapshot = build_snapshot(
         record("secret-1", territory_refs=["agua-negra-v1"], sensitivity="restricted"),
         record("secret-2", territory_refs=["agua-negra-v1"], sensitivity="restricted"),
@@ -935,25 +771,13 @@ def test_restricted_omission_is_reported_once():
     assert snapshot.missing_context.count("restricted internal context was omitted") == 1
 
 
-def test_public_match_plus_restricted_match_keeps_public_context_and_generic_warning():
-    snapshot = build_snapshot(
-        record("public-record"),
-        record("secret-record", territory_refs=["agua-negra-v1"], sensitivity="restricted"),
-    )
-    assert snapshot.related_repositories[0].context_id == "public-record"
-    assert snapshot.missing_context == ("restricted internal context was omitted",)
-
-
-def test_catalog_order_does_not_change_snapshot_or_id():
+def test_catalog_order_does_not_change_snapshot():
     a = record("a-record")
     b = record("b-record")
-    first = build_snapshot(b, a)
-    second = build_snapshot(a, b)
-    assert first.to_dict() == second.to_dict()
-    assert first.snapshot_id == second.snapshot_id
+    assert build_snapshot(b, a).to_dict() == build_snapshot(a, b).to_dict()
 
 
-def test_adapter_output_has_no_scores_or_operational_authorizations():
+def test_output_has_no_scores_or_operational_authorizations():
     text = repr(build_snapshot(record("generic")).to_dict())
     for forbidden in (
         "relevance_score", "confidence_score", "risk_score", "truth_score",
@@ -962,19 +786,12 @@ def test_adapter_output_has_no_scores_or_operational_authorizations():
         assert forbidden not in text
 ```
 
-- [ ] **Step 6: Verify Task 3 and regression suite**
+- [ ] **Step 5: Verify + commit Task 3**
 
 ```bash
 pytest tests/test_internal_context_adapter.py -q
 pytest -q
 python -m compileall -q src
-```
-
-Expected: Task 3 green, full suite green, compile exit 0.
-
-- [ ] **Step 7: Commit Task 3**
-
-```bash
 git add src/andes_context_os/adapters tests/test_internal_context_adapter.py
 git commit -m "feat: add deterministic internal context adapter"
 ```
@@ -989,12 +806,10 @@ git commit -m "feat: add deterministic internal context adapter"
 - Modify: `README.md`
 
 **Interfaces:**
-- Consumes: `InternalContextCatalog.load()` and public V0.2 contracts.
-- Produces: a safe sample catalog, accurate README claims, feature-branch CI evidence.
+- Consumes: public V0.2 contracts.
+- Produces: safe sample catalog, accurate README claims, feature-branch CI evidence.
 
 - [ ] **Step 1: Write RED release tests**
-
-Create:
 
 ```python
 from pathlib import Path
@@ -1023,27 +838,70 @@ def test_readme_describes_v02_without_live_connector_claims():
     assert "internal context match != evidence validation" in text
 ```
 
-- [ ] **Step 2: Run release RED**
+- [ ] **Step 2: Run RED**
 
 ```bash
 pytest tests/test_internal_context_release.py -q
 ```
 
-Expected: sample and README assertions fail.
+- [ ] **Step 3: Create exact public-safe catalog**
 
-- [ ] **Step 3: Create the exact fictitious/public-safe catalog**
+`data/internal_context.example.v0.1.json`:
 
-Create `data/internal_context.example.v0.1.json` with three `sensitivity: "public"` records:
+```json
+{
+  "catalog_version": "0.1",
+  "records": [
+    {
+      "contract_version": "0.1",
+      "context_id": "example-geoplatform-access",
+      "kind": "repository",
+      "title": "Example territorial access capability",
+      "reference": "repo:example-geoplatform#access",
+      "summary": "A public-safe example of an existing geospatial capability that may be relevant to access research.",
+      "domains": ["logistics"],
+      "activities": ["access", "route_planning"],
+      "territory_refs": [],
+      "tags": ["geospatial", "access"],
+      "sensitivity": "public",
+      "reviewed_at": "2026-08-30T09:00:00-03:00",
+      "limitations": ["Example reference does not establish current road condition"]
+    },
+    {
+      "contract_version": "0.1",
+      "context_id": "example-corridor-note",
+      "kind": "vault_note",
+      "title": "Example corridor research note",
+      "reference": "note:example-corridor-research",
+      "summary": "A fictitious high-density note reference for demonstrating exact territorial matching.",
+      "domains": [],
+      "activities": [],
+      "territory_refs": ["example-corridor-v1"],
+      "tags": ["corridor"],
+      "sensitivity": "public",
+      "reviewed_at": "2026-08-30T09:00:00-03:00",
+      "limitations": ["Fictitious example only"]
+    },
+    {
+      "contract_version": "0.1",
+      "context_id": "example-road-freshness-gap",
+      "kind": "known_gap",
+      "title": "Example road-condition freshness gap",
+      "reference": "gap:example-road-freshness",
+      "summary": "An example known gap showing that route geometry alone does not establish current operational condition.",
+      "domains": ["access"],
+      "activities": ["road_condition"],
+      "territory_refs": [],
+      "tags": ["freshness", "roads"],
+      "sensitivity": "public",
+      "reviewed_at": "2026-08-30T09:00:00-03:00",
+      "limitations": ["Gap description is not a live road-status observation"]
+    }
+  ]
+}
+```
 
-1. `example-geoplatform-access` — kind `repository`, domains `["logistics"]`, activities `["access", "route_planning"]`, no territory refs, limitation that it does not establish current road condition.
-2. `example-corridor-note` — kind `vault_note`, empty domains/activities, territory ref `["example-corridor-v1"]`, limitation `"Fictitious example only"`.
-3. `example-road-freshness-gap` — kind `known_gap`, domain `["access"]`, activity `["road_condition"]`, no territory refs, limitation that the gap is not a live road-status observation.
-
-Use only fictitious references such as `repo:example-geoplatform#access`, `note:example-corridor-research`, and `gap:example-road-freshness`. Use `reviewed_at = "2026-08-30T09:00:00-03:00"` on all three. Do not include private URLs, real private note bodies, AOIs, credentials or contact data.
-
-- [ ] **Step 4: Add the exact README V0.2 boundary**
-
-Add this section after the existing V0.1 flow:
+- [ ] **Step 4: Add exact README section**
 
 ````markdown
 ## V0.2 — Internal Context Adapter
@@ -1073,78 +931,60 @@ known decision != current authorization
 ```
 ````
 
-Keep the existing V0.1 limitations, but edit any wording that would falsely imply the new local adapter does not exist. Do not claim live vault/GitHub retrieval, private-data ingestion, evidence promotion or route safety analysis.
+Edit any older README sentence that contradicts this local V0.2 capability; retain explicit non-goals for live GitHub/vault retrieval, private-data ingestion, evidence promotion and route-safety analysis.
 
-- [ ] **Step 5: Run release GREEN**
+- [ ] **Step 5: Verify locally and commit Task 4**
 
 ```bash
 pytest tests/test_internal_context_release.py -q
-```
-
-Expected: release tests pass.
-
-- [ ] **Step 6: Run final local gate**
-
-```bash
 python -m pip install --no-build-isolation -e ".[dev]"
 pytest -q
 python -m compileall -q src
+git add data/internal_context.example.v0.1.json README.md tests/test_internal_context_release.py
+git commit -m "docs: publish internal context adapter v0.2"
 ```
 
-Expected: editable build succeeds, full V0.1+V0.2 suite has zero failures, compile exit 0.
-
-If network is available, also run the same isolated install command CI uses:
+If external DNS is available, also run the canonical CI install path:
 
 ```bash
 python -m pip install -e ".[dev]"
 pytest -q
 ```
 
-A local DNS failure is not a pass; the network-enabled install gate is the GitHub Actions run.
+A DNS failure is an environment limitation, not positive verification.
 
-- [ ] **Step 7: Commit Task 4**
+- [ ] **Step 6: Verify GitHub Actions for exact HEAD**
+
+Capture the exact branch HEAD first:
 
 ```bash
-git add data/internal_context.example.v0.1.json README.md tests/test_internal_context_release.py
-git commit -m "docs: publish internal context adapter v0.2"
+git rev-parse HEAD
 ```
 
-- [ ] **Step 8: Verify GitHub Actions for the exact feature-branch HEAD**
+Then inspect the GitHub Actions `tests` run whose `head_branch` is `feat/internal-context-adapter` and whose `head_sha` exactly equals that command output. Require `status=completed`, `conclusion=success`, successful `pytest` step, and zero failures in the job log.
 
-Required evidence:
+- [ ] **Step 7: Final requirement gate before PR/integration**
+
+Verify each item and record the actual result:
 
 ```text
-workflow: tests
-head_branch: feat/internal-context-adapter
-head_sha: <Task 4 commit SHA>
-status: completed
-conclusion: success
-pytest step: success
-final pytest output: zero failures
+strict record/catalog contracts
+malformed records fail with ValueError
+exact categorical match reasons
+territorial-specific gate
+no fuzzy/proximity/bbox matching
+no numeric score
+restricted records non-emitting
+restricted omission non-leaking
+empty context explicit
+deterministic ordering
+content-addressed snapshot_id
+DiscoveryRun unchanged
+no new runtime dependency
+public-safe sample only
+README avoids live GitHub/vault claims
+full tests green
+feature-branch CI green
 ```
 
-Do not infer success from workflow-file existence.
-
-- [ ] **Step 9: Run final requirement checklist before PR/integration**
-
-```text
-strict record/catalog contracts                     PASS/FAIL
-malformed records fail with ValueError               PASS/FAIL
-exact categorical match reasons                      PASS/FAIL
-territorial-specific gate                            PASS/FAIL
-no fuzzy/proximity/bbox matching                     PASS/FAIL
-no numeric score                                     PASS/FAIL
-restricted records non-emitting                      PASS/FAIL
-restricted omission non-leaking                      PASS/FAIL
-empty context explicit                               PASS/FAIL
-deterministic ordering                               PASS/FAIL
-content-addressed snapshot_id                        PASS/FAIL
-DiscoveryRun unchanged                               PASS/FAIL
-no new runtime dependency                            PASS/FAIL
-public-safe sample only                              PASS/FAIL
-README avoids live GitHub/vault claims               PASS/FAIL
-full tests green                                     PASS/FAIL
-feature-branch CI green                              PASS/FAIL
-```
-
-If any line is `FAIL`, stop before PR/integration and fix it with a new RED/GREEN cycle.
+If any requirement is not satisfied, stop before PR/integration and fix it with a new RED/GREEN cycle.
