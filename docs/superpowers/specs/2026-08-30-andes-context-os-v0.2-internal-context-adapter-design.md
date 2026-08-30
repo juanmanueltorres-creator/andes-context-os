@@ -125,7 +125,7 @@ Rules:
 - `context_id`, `title`, `reference`, and `summary` are non-empty strings;
 - `domains[]` use the existing `ResearchDomain` vocabulary;
 - `activities[]` use the existing `ResearchActivity` vocabulary;
-- `territory_refs[]` are opaque stable references, not inferred territorial claims;
+- `territory_refs[]` are stable typed references used for exact matching, not inferred territorial claims;
 - `reviewed_at`, when present, is timezone-aware ISO-8601;
 - unknown fields fail closed;
 - malformed lists fail closed;
@@ -186,18 +186,20 @@ intent.activity ∈ record.activities
 
 ### 5.3 Territory match
 
-Stable scope references are derived only from structured fields:
+Stable scope references are derived only from structured fields and are namespaced by reference type:
 
 ```text
-countries[]
-admin_units[].official_code when present
-project_refs[]
-corridor_refs[]
-segment_refs[]
-geometry_ref when present
+country:<country_code>
+admin:<country_code>:<admin_level>:<official_code>
+project:<project_ref>
+corridor:<corridor_ref>
+segment:<segment_ref>
+geometry:<geometry_ref>
 ```
 
-`territory_match` requires exact equality with one of `record.territory_refs[]`.
+Examples include `country:AR`, `admin:AR:1:J`, and `corridor:agua-negra-v1`. An unprefixed administrative code such as `J` is intentionally not matchable.
+
+`territory_match` requires exact equality with one of `record.territory_refs[]`. Namespacing prevents collisions between countries, administrative systems, and different reference types.
 
 V0.2 does not infer equivalence from names, bbox overlap, proximity or administrative hierarchy.
 
@@ -252,7 +254,7 @@ match_reasons[]
 limitations[]
 ```
 
-`match_reasons[]` are sorted deterministically. Tags and full matching vocabularies are not projected downstream.
+`match_reasons[]` are sorted deterministically and duplicate reasons are rejected rather than silently collapsed. Tags and full matching vocabularies are not projected downstream.
 
 ### 6.2 `InternalContextSnapshot`
 
@@ -278,7 +280,7 @@ missing_context[]
 
 `question_profile_ref` is copied from `ResearchIntent.question_profile_ref`.
 
-Each category contains immutable `ContextSelection` tuples.
+Each category contains immutable `ContextSelection` tuples. A `context_id` may appear at most once across the complete snapshot; both `build()` and `from_dict()` reject duplicates.
 
 Category mapping:
 
@@ -337,7 +339,9 @@ Fail closed for:
 
 - malformed JSON catalog;
 - unsupported catalog version;
-- duplicate `context_id`;
+- duplicate catalog `context_id`;
+- duplicate snapshot `context_id`;
+- duplicate `match_reasons`;
 - unsupported kind or sensitivity;
 - unsupported domain/activity values;
 - naive `reviewed_at` or `generated_at`;
@@ -370,7 +374,7 @@ No new runtime dependency is allowed.
 
 `data/internal_context.example.v0.1.json` contains fictitious/public-safe examples only.
 
-Permitted examples include a public repository capability, a fictional corridor note, and a known-gap example about data freshness.
+Permitted examples include a public repository capability, a fictional corridor note, and a known-gap example about data freshness. Territorial examples use the same typed reference convention as runtime matching, for example `corridor:example-corridor-v1`.
 
 It must not contain private vault text, private repository URLs, private AOIs, contact data, unpublished institutional context, credentials or secrets.
 
@@ -403,18 +407,22 @@ Required coverage:
 5. local JSON catalog load;
 6. exact domain matching;
 7. exact activity matching;
-8. exact structured territory matching;
-9. territorial-specific records cannot match a different territory by domain alone;
-10. empty result produces a valid explicit missing-context snapshot;
-11. multiple match reasons are preserved without scores;
-12. catalog order does not change snapshot ordering or `snapshot_id` when `generated_at` is fixed;
-13. meaningful selected-content changes change `snapshot_id`;
-14. restricted matches are omitted without metadata/count leakage;
-15. generated timestamp must be timezone-aware;
-16. snapshot/category tuples are immutable;
-17. secret-like/unknown fields are rejected;
-18. full V0.1 regression suite remains green;
-19. GitHub Actions remains green on Python 3.11.
+8. exact typed structured territory matching;
+9. administrative refs are namespaced by country and level;
+10. raw ambiguous admin codes do not match;
+11. territorial-specific records cannot match a different territory by domain alone;
+12. empty result produces a valid explicit missing-context snapshot;
+13. multiple match reasons are preserved without scores;
+14. duplicate match reasons fail closed;
+15. duplicate snapshot context IDs fail closed in both build and parse paths;
+16. catalog order does not change snapshot ordering or `snapshot_id` when `generated_at` is fixed;
+17. meaningful selected-content changes change `snapshot_id`;
+18. restricted matches are omitted without metadata/count leakage;
+19. generated timestamp must be timezone-aware;
+20. snapshot/category tuples are immutable;
+21. secret-like/unknown fields are rejected;
+22. full V0.1 regression suite remains green;
+23. GitHub Actions remains green on Python 3.11.
 
 ## 13. Explicit non-goals
 
@@ -441,14 +449,15 @@ The slice is complete when:
 
 1. a strict local catalog loads with stdlib-only runtime code;
 2. `ResearchIntent` + `TerritorialScope` yield a deterministic content-addressed `InternalContextSnapshot`;
-3. territorial-specific records cannot cross-match by domain/activity alone;
-4. every selected item preserves explicit categorical match reasons;
-5. no synthetic relevance/confidence score exists;
-6. restricted records cannot leak through the snapshot;
-7. empty context is represented explicitly rather than as provider failure;
-8. existing `DiscoveryRun` lineage can reference the snapshot without changing the run contract;
-9. the full V0.1 suite remains green;
-10. CI is green on the feature branch.
+3. territorial-specific records cannot cross-match by domain/activity alone or by ambiguous raw admin codes;
+4. every selected item preserves explicit categorical match reasons without duplicates;
+5. snapshot context IDs are globally unique;
+6. no synthetic relevance/confidence score exists;
+7. restricted records cannot leak through the snapshot;
+8. empty context is represented explicitly rather than as provider failure;
+9. existing `DiscoveryRun` lineage can reference the snapshot without changing the run contract;
+10. the full V0.1 suite remains green;
+11. CI is green on the feature branch.
 
 ## 15. Dependency direction
 
