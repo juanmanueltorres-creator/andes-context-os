@@ -1,0 +1,46 @@
+{
+  "manifest_version": "0.1",
+  "entries": [
+    {
+      "entry_id": "example-repository-capability",
+      "resolver_id": "example",
+      "source_locator": "example://repository/access-capability",
+      "expected_source_identity": "example-source:repository-access:v1",
+      "context": {
+        "contract_version": "0.1",
+        "context_id": "example-repository-access",
+        "kind": "repository",
+        "title": "Example access mapping capability",
+        "reference": "example:repository-access",
+        "summary": "Fictitious repository capability for representing access context.",
+        "domains": ["logistics"],
+        "activities": ["access"],
+        "territory_refs": [],
+        "tags": ["example"],
+        "sensitivity": "public",
+        "reviewed_at": "2026-08-30T10:00:00-03:00",
+        "limitations": ["Fictitious example only; no live operational claim."]
+      }
+    },
+    {
+      "entry_id": "example-road-freshness-gap",
+      "resolver_id": "example",
+      "source_locator": "example://note/road-freshness-gap",
+      "context": {
+        "contract_version": "0.1",
+        "context_id": "example-road-freshness-gap",
+        "kind": "known_gap",
+        "title": "Example road freshness gap",
+        "reference": "example:road-freshness-gap",
+        "summary": "Fictitious reminder that mapped road geometry does not establish current road condition.",
+        "domains": ["logistics"],
+        "activities": ["road_condition"],
+        "territory_refs": ["corridor:example-corridor-v1"],
+        "tags": ["example"],
+        "sensitivity": "public",
+        "reviewed_at": "2026-08-30T10:00:00-03:00",
+        "limitations": ["Fictitious example only; requires current external evidence before operational use."]
+      }
+    }
+  ]
+}
