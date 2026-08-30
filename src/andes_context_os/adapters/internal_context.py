@@ -15,13 +15,17 @@ RESTRICTED_OMISSION_MESSAGE = "restricted internal context was omitted"
 
 
 def _scope_refs(scope: TerritorialScope) -> frozenset[str]:
-    refs = set(scope.countries)
-    refs.update(unit.official_code for unit in scope.admin_units if unit.official_code is not None)
-    refs.update(scope.project_refs)
-    refs.update(scope.corridor_refs)
-    refs.update(scope.segment_refs)
+    refs = {f"country:{country}" for country in scope.countries}
+    refs.update(
+        f"admin:{unit.country_code}:{unit.admin_level}:{unit.official_code}"
+        for unit in scope.admin_units
+        if unit.official_code is not None
+    )
+    refs.update(f"project:{ref}" for ref in scope.project_refs)
+    refs.update(f"corridor:{ref}" for ref in scope.corridor_refs)
+    refs.update(f"segment:{ref}" for ref in scope.segment_refs)
     if scope.geometry_ref is not None:
-        refs.add(scope.geometry_ref)
+        refs.add(f"geometry:{scope.geometry_ref}")
     return frozenset(refs)
 
 
