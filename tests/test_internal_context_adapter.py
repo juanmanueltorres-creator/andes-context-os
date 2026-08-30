@@ -63,25 +63,53 @@ def build_snapshot(*records):
 
 
 def test_territorial_record_requires_exact_match():
-    snapshot = build_snapshot(record("peru-only", territory_refs=["PE"]))
+    snapshot = build_snapshot(record("peru-only", territory_refs=["country:PE"]))
     assert snapshot.related_repositories == ()
 
 
 def test_exact_corridor_match_preserves_all_reasons():
-    snapshot = build_snapshot(record("agua-negra", territory_refs=["agua-negra-v1"]))
+    snapshot = build_snapshot(record("agua-negra", territory_refs=["corridor:agua-negra-v1"]))
     assert [reason.value for reason in snapshot.related_repositories[0].match_reasons] == [
         "activity_match", "domain_match", "territory_match"
     ]
 
 
+def test_admin_reference_is_namespaced_by_country_and_level():
+    snapshot = build_snapshot(
+        record("wrong-country-admin", territory_refs=["admin:CL:1:J"]),
+        record("san-juan-admin", territory_refs=["admin:AR:1:J"]),
+    )
+    assert [item.context_id for item in snapshot.related_repositories] == ["san-juan-admin"]
+
+
+def test_raw_admin_code_does_not_match_structured_admin_reference():
+    snapshot = build_snapshot(record("ambiguous-admin", territory_refs=["J"]))
+    assert snapshot.related_repositories == ()
+
+
 def test_territory_only_record_can_match():
-    snapshot = build_snapshot(record("corridor-note", kind="vault_note", domains=[], activities=[], territory_refs=["agua-negra-v1"]))
+    snapshot = build_snapshot(
+        record(
+            "corridor-note",
+            kind="vault_note",
+            domains=[],
+            activities=[],
+            territory_refs=["corridor:agua-negra-v1"],
+        )
+    )
     assert [reason.value for reason in snapshot.related_vault_notes[0].match_reasons] == ["territory_match"]
 
 
 def test_restricted_match_is_non_emitting_and_non_leaking():
     secret_id = "restricted-secret-id"
-    snapshot = build_snapshot(record(secret_id, kind="known_evidence", territory_refs=["agua-negra-v1"], sensitivity="restricted"))
+    snapshot = build_snapshot(
+        record(
+            secret_id,
+            kind="known_evidence",
+            territory_refs=["corridor:agua-negra-v1"],
+            sensitivity="restricted",
+        )
+    )
     text = repr(snapshot.to_dict())
     assert snapshot.known_evidence == ()
     assert snapshot.missing_context == (
@@ -95,8 +123,8 @@ def test_restricted_match_is_non_emitting_and_non_leaking():
 
 def test_restricted_message_is_emitted_once():
     snapshot = build_snapshot(
-        record("secret-1", territory_refs=["agua-negra-v1"], sensitivity="restricted"),
-        record("secret-2", territory_refs=["agua-negra-v1"], sensitivity="restricted"),
+        record("secret-1", territory_refs=["corridor:agua-negra-v1"], sensitivity="restricted"),
+        record("secret-2", territory_refs=["corridor:agua-negra-v1"], sensitivity="restricted"),
     )
     assert snapshot.missing_context.count("restricted internal context was omitted") == 1
 
