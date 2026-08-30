@@ -242,3 +242,24 @@ def test_adapter_binding_accepts_optional_min_version_omitted():
     }
     source = SourceRecord.from_dict({**VALID_SOURCE, "adapter_binding": binding})
     assert source.adapter_binding.adapter_min_version is None
+
+
+@pytest.mark.parametrize("field", ["password", "api_key", "access_token", "cookie"])
+def test_source_record_rejects_secret_like_top_level_fields(field):
+    with pytest.raises(ValueError, match=f"unknown fields: {field}"):
+        SourceRecord.from_dict({**VALID_SOURCE, field: "secret"})
+
+
+def test_unknown_rights_remain_unknown_after_round_trip():
+    source = SourceRecord.from_dict(VALID_SOURCE)
+    round_tripped = SourceRecord.from_dict(source.to_dict())
+    assert round_tripped.rights.license_status.value == "unknown_review_required"
+    assert round_tripped.rights.commercial_reuse.value == "unknown"
+    assert round_tripped.rights.redistribution.value == "unknown"
+
+
+def test_runtime_empty_round_trip_remains_empty_not_unavailable():
+    observation = SourceRuntimeObservation.from_dict(runtime_payload("empty"))
+    round_tripped = SourceRuntimeObservation.from_dict(observation.to_dict())
+    assert round_tripped.status.value == "empty"
+    assert round_tripped.status.value != "unavailable"
