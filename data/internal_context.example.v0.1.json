@@ -25,7 +25,7 @@
       "summary": "A fictitious high-density note reference for demonstrating exact territorial matching.",
       "domains": [],
       "activities": [],
-      "territory_refs": ["example-corridor-v1"],
+      "territory_refs": ["corridor:example-corridor-v1"],
       "tags": ["corridor"],
       "sensitivity": "public",
       "reviewed_at": "2026-08-30T09:00:00-03:00",
