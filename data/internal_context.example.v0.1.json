@@ -1,0 +1,50 @@
+{
+  "catalog_version": "0.1",
+  "records": [
+    {
+      "contract_version": "0.1",
+      "context_id": "example-geoplatform-access",
+      "kind": "repository",
+      "title": "Example territorial access capability",
+      "reference": "repo:example-geoplatform#access",
+      "summary": "A public-safe example of an existing geospatial capability that may be relevant to access research.",
+      "domains": ["logistics"],
+      "activities": ["access", "route_planning"],
+      "territory_refs": [],
+      "tags": ["geospatial", "access"],
+      "sensitivity": "public",
+      "reviewed_at": "2026-08-30T09:00:00-03:00",
+      "limitations": ["Example reference does not establish current road condition"]
+    },
+    {
+      "contract_version": "0.1",
+      "context_id": "example-corridor-note",
+      "kind": "vault_note",
+      "title": "Example corridor research note",
+      "reference": "note:example-corridor-research",
+      "summary": "A fictitious high-density note reference for demonstrating exact territorial matching.",
+      "domains": [],
+      "activities": [],
+      "territory_refs": ["example-corridor-v1"],
+      "tags": ["corridor"],
+      "sensitivity": "public",
+      "reviewed_at": "2026-08-30T09:00:00-03:00",
+      "limitations": ["Fictitious example only"]
+    },
+    {
+      "contract_version": "0.1",
+      "context_id": "example-road-freshness-gap",
+      "kind": "known_gap",
+      "title": "Example road-condition freshness gap",
+      "reference": "gap:example-road-freshness",
+      "summary": "An example known gap showing that route geometry alone does not establish current operational condition.",
+      "domains": ["access"],
+      "activities": ["road_condition"],
+      "territory_refs": [],
+      "tags": ["freshness", "roads"],
+      "sensitivity": "public",
+      "reviewed_at": "2026-08-30T09:00:00-03:00",
+      "limitations": ["Gap description is not a live road-status observation"]
+    }
+  ]
+}
