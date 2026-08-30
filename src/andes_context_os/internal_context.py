@@ -171,12 +171,14 @@ class ContextSelection:
     reference: str
     summary: str
     match_reasons: tuple[MatchReason, ...]
+    reviewed_at: str | None
     limitations: tuple[str, ...]
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "ContextSelection":
-        fields = {"context_id", "kind", "title", "reference", "summary", "match_reasons", "limitations"}
-        require_fields(payload, required=fields, allowed=fields)
+        required = {"context_id", "kind", "title", "reference", "summary", "match_reasons", "limitations"}
+        allowed = required | {"reviewed_at"}
+        require_fields(payload, required=required, allowed=allowed)
         raw = require_string_list(payload["match_reasons"], "match_reasons", allow_empty=False)
         if len(raw) != len(set(raw)):
             raise ValueError("duplicate match_reasons")
@@ -186,6 +188,7 @@ class ContextSelection:
                 key=lambda item: item.value,
             )
         )
+        reviewed_at = payload.get("reviewed_at")
         return cls(
             context_id=require_text(payload["context_id"], "context_id"),
             kind=_enum_value(InternalContextKind, payload["kind"], "kind"),
@@ -193,6 +196,7 @@ class ContextSelection:
             reference=require_text(payload["reference"], "reference"),
             summary=require_text(payload["summary"], "summary"),
             match_reasons=reasons,
+            reviewed_at=(require_aware_iso8601(reviewed_at, "reviewed_at") if reviewed_at is not None else None),
             limitations=require_string_list(payload["limitations"], "limitations"),
         )
 
@@ -210,12 +214,13 @@ class ContextSelection:
                 "reference": record.reference,
                 "summary": record.summary,
                 "match_reasons": [reason.value for reason in reasons],
+                "reviewed_at": record.reviewed_at,
                 "limitations": list(record.limitations),
             }
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "context_id": self.context_id,
             "kind": self.kind.value,
             "title": self.title,
@@ -224,6 +229,9 @@ class ContextSelection:
             "match_reasons": [reason.value for reason in self.match_reasons],
             "limitations": list(self.limitations),
         }
+        if self.reviewed_at is not None:
+            payload["reviewed_at"] = self.reviewed_at
+        return payload
 
 
 _CATEGORY_BY_KIND = {
