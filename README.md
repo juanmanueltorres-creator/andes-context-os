@@ -1,10 +1,44 @@
 # Andes Context OS
 
-**A small territorial discovery engine for mining and Andean operations.**
+> **Territorial research without collapsing source, evidence, context and authorization into the same thing.**
 
-V0.2 keeps the strict V0.1 contract core and adds a local deterministic internal-context boundary. It still does not search the web or decide whether a road is safe; questions, territory, source state, evidence, rights, limitations, internal context, and lineage remain separate and auditable.
+Andes Context OS is a small, deterministic research core for mining and Andean operations. It turns a question and an explicit territorial scope into reproducible context: **which sources are registered, what was actually observed, what is still only an evidence candidate, what is missing or contradictory, and which internal references were explicitly authorized for use**.
 
-## Contract flow
+It is deliberately conservative. The system does not turn proximity into impact, public information into verified fact, or prior internal knowledge into current operational authorization.
+
+---
+
+## The problem it is designed for
+
+A territorial research task often starts with a deceptively simple question:
+
+> **What do we know about this project, corridor or segment — and how strong is that knowledge?**
+
+The dangerous shortcut is to merge everything into one bucket: source metadata, live observations, internal notes, candidate evidence, old decisions and operational claims.
+
+Andes Context OS keeps those layers separate.
+
+```text
+Question
+   ↓
+Where exactly?
+   ↓
+Which sources are registered?
+   ↓
+What did those sources actually return?
+   ↓
+What can become an evidence candidate?
+   ↓
+What is missing / contradictory / restricted?
+   ↓
+Reproducible research snapshot
+```
+
+---
+
+## Two explicit context paths
+
+### 1. Public research core
 
 ```text
 question
@@ -22,7 +56,33 @@ EvidenceCandidate + EvidenceQualityVector
 DiscoveryRun
 ```
 
-The design intentionally preserves distinctions that are easy to collapse in research and geospatial systems:
+This path distinguishes a **registered source** from what happened when that source was actually checked.
+
+A source can be known but unavailable. An observation can be partial. A candidate can require review. Missing context stays missing.
+
+### 2. Authorized internal context
+
+```text
+private allowlist
+      ↓
+exact authorized reference
+      ↓
+injected exact resolver
+      ↓
+source identity + SHA-256 receipt
+      ↓
+curated InternalContextCatalog
+      ↓
+deterministic InternalContextSnapshot
+```
+
+The allowlist decides what may be read. The resolver does not search neighboring files, crawl repositories, infer related documents or expand its own scope.
+
+The public core ships no GitHub client, vault client, LLM summarizer, embedding search or crawler.
+
+---
+
+## Boundaries that matter
 
 ```text
 registered source != live source
@@ -30,113 +90,60 @@ public signal != verified fact
 proximity != impact
 downloadable != reusable
 candidate != operational evidence
+internal context != operational evidence
+known evidence reference != current evidence
+known decision != current authorization
 research action != authorization
 ```
 
-## What V0.1 includes
+These are not documentation disclaimers added after the fact; they shape the contracts themselves.
 
-- `ResearchIntent` for preserving the original question, canonical question, domain, activity, constraints, and creation time.
-- `TerritorialScope` for explicit countries, administrative units, projects, corridors, segments, bounding boxes, geometry references, precision, and relation basis.
-- `SourceRecord` for declarative source identity, authority, access, coverage, rights, limitations, and adapter binding.
-- `SourceRuntimeObservation` for what actually happened when a source was checked: `available`, `empty`, `partial`, `unavailable`, `omitted`, `unsupported`, or `unknown`.
-- `EvidenceQualityVector` for multidimensional evidence description without a synthetic confidence, risk, or truth score.
-- `EvidenceCandidate` as a minimal research projection with provenance, temporal context, territorial relation, corroboration references, and review state.
-- `SourceRegistry` with deterministic canonical hashing and a conservative V0.1 seed registry.
-- `DiscoveryRun` with immutable lineage, registry compatibility checks, adapter versions, observations, missing context, contradictions, warnings, omitted sources, recommended research action, and reproducible run hashing.
+Operational fields such as `safe_to_travel`, `road_open`, `route_authorized` and `community_approved` are rejected by strict parsing rather than accepted as generic metadata.
 
-## V0.2 — Internal Context Adapter
+---
 
-V0.2 adds a deterministic internal-context boundary backed by a local deterministic catalog of high-density references.
+## What it does today
 
-```text
-ResearchIntent + TerritorialScope
-              ↓
-      InternalContextCatalog
-              ↓
-     InternalContextAdapter
-              ↓
-    InternalContextSnapshot
-```
+| Capability | Purpose |
+| --- | --- |
+| **Research intent** | preserves the original question, canonical question, domain, activity and constraints |
+| **Territorial scope** | makes country, admin area, project, corridor, segment, bbox and geometry scope explicit |
+| **Source registry** | records authority, access, coverage, rights, limitations and adapter identity without claiming liveness |
+| **Runtime observations** | records what actually happened when a source was checked |
+| **Evidence candidates** | keeps provenance, territorial relation, time context, corroboration and review state explicit |
+| **Evidence quality vector** | describes evidence across multiple dimensions without collapsing them into a confidence/truth/risk score |
+| **Discovery runs** | freezes lineage, observations, contradictions, missing context, warnings and research action into a reproducible run |
+| **Internal context adapter** | selects curated internal references deterministically using exact categorical and territorial matches |
+| **Authorized context producer** | resolves only explicitly authorized private references and emits source receipts without leaking raw source content |
 
-The adapter uses exact categorical matching only (`domain_match`, `activity_match`, `territory_match`). Territorial-specific records require an exact structured territorial reference match. It does not rank context numerically.
+The current implementation includes the V0.2 internal-context boundary and the V0.3 authorized-context producer on top of the original discovery contracts.
 
-Territorial references use typed identities such as `country:AR`, `admin:AR:1:J`, `project:<ref>`, `corridor:<ref>`, `segment:<ref>`, and `geometry:<ref>` so equal-looking codes from different countries or reference types cannot cross-match.
+---
 
-`ContextSelection` rejects duplicate match reasons, and `InternalContextSnapshot` rejects duplicate `context_id` values in both build and parse paths so semantically duplicated snapshots cannot acquire distinct hashes.
+## Exact territory instead of fuzzy geography
 
-`restricted` records are never emitted by V0.2. A matching restricted record produces only the generic message `restricted internal context was omitted`, without exposing its metadata.
-
-V0.2 does not read GitHub or the private vault. Those systems may later become authorized producers of `InternalContextRecord`; they are not runtime dependencies of this release.
+Territorial references are typed so equal-looking identifiers cannot silently cross boundaries:
 
 ```text
-internal context match != evidence validation
-known evidence reference != current operational evidence
-known decision != current authorization
+country:AR
+admin:AR:1:J
+project:<ref>
+corridor:<ref>
+segment:<ref>
+geometry:<ref>
 ```
 
-## V0.3 — Authorized Context Producer
+Territorial-specific internal context requires exact structured reference equality.
 
-V0.3 can turn a private manifest of exact authorized references into an `InternalContextCatalog` before V0.2 selection.
+There is no bbox proximity inference, fuzzy project-name match, embedding similarity or LLM-based relevance score in the current core.
 
-```text
-private manifest
-→ exact authorized references
-→ injected exact resolver
-→ exact source bytes + SHA-256 receipt
-→ unchanged curated InternalContextRecord
-→ InternalContextCatalog
-```
+That is intentional: **relevance can be reviewed later; scope identity should not be guessed.**
 
-The manifest, not the resolver, decides what may be read. The producer does not search GitHub or the private vault, enumerate repositories, recursively scan directories, follow links, infer neighboring files, or summarize source content. Concrete GitHub/vault resolvers are runtime concerns and are not dependencies of the public core.
+---
 
-Curated context metadata remains separate from source-resolution provenance; source content is not copied into the produced catalog, resolver exceptions are sanitized, and failed entries emit neither records nor receipts.
+## Evidence quality without a magic score
 
-## Source Registry
-
-The seed registry currently contains 12 declarative source references:
-
-```text
-ar_segemar_sigam
-ar_siacam
-ar_sanjuan_mining_cadastre
-ar_dnv_routes
-ar_ign_admin
-osm_global
-cl_sernageomin
-pe_ingemmet_geocatmin
-eu_copernicus_dem
-research_automine
-research_ampilot
-reddit_public
-```
-
-Registration is metadata, not a liveness claim. Except where rights are explicitly known in the seed, unresolved reuse terms remain `unknown_review_required` rather than being guessed open.
-
-OpenStreetMap is represented as ODbL with attribution and conditional redistribution obligations. AutoMine and AMPilot are reference-only entries. Reddit is represented only as a public human-signal source; public visibility does not imply bulk reuse permission or verified operational truth.
-
-## Quick start
-
-Requires Python 3.11+.
-
-```bash
-python -m pip install -e ".[dev]"
-pytest -q
-```
-
-Load the seed registry and inspect its deterministic hash:
-
-```python
-from andes_context_os.registry import SourceRegistry
-
-registry = SourceRegistry.load("data/source_registry.v0.1.json")
-print(registry.registry_hash)
-```
-
-The registry hash excludes `generated_at` and canonicalizes sources by `source_id`, so array ordering does not change registry identity while meaningful metadata changes do.
-
-## Evidence semantics
-
-`EvidenceQualityVector` keeps quality dimensions separate:
+`EvidenceQualityVector` keeps dimensions separate:
 
 ```text
 authority
@@ -154,66 +161,114 @@ limitations
 missing_context
 ```
 
-There is deliberately no function that sums these dimensions into a single score.
+There is deliberately no function that sums those dimensions into a single confidence, truth or operational-risk value.
 
-`multiple_independent_sources` requires at least two distinct corroboration references. Distinct references alone do not prove true independence; independence remains a source-lineage and review judgment.
+Two corroboration references can be recorded without pretending that their independence has automatically been proven.
 
-## Discovery runs
+---
 
-A `DiscoveryRun` freezes a reproducible research execution:
+## Determinism and provenance
 
-```text
-intent + territory
-+ registry version/hash
-+ adapter versions
-+ runtime observations
-+ candidate refs
-+ contradictions
-+ missing context
-+ warnings
-+ omitted sources
-+ action + reason
-+ lineage
-```
+Reproducibility is part of the contract.
 
-Valid run states are `complete`, `partial`, and `failed`. A partial run can be valid when optional sources are unavailable, as long as the missing context is explicit.
+- source registries use deterministic canonical hashing;
+- discovery runs freeze registry identity, adapter versions, observations and lineage;
+- internal-context snapshots are content-addressed;
+- duplicate match reasons and duplicate context IDs are rejected;
+- authorized producer receipts use SHA-256 source identity;
+- content-hash or source-identity mismatches fail closed;
+- resolver failures are sanitized so private locators, source content and exception text are not leaked.
 
-Recommended actions are research actions only: `watch`, `research`, `validate`, `build_spike`, or `discard`.
+A partial research run can still be valid when optional sources fail, as long as the missing context remains explicit.
 
-Operational authorization fields such as `safe_to_travel`, `road_open`, `route_authorized`, and `community_approved` are rejected by strict parsing.
+---
 
-## What V0.1 does not do
+## Source registry
 
-V0.1 intentionally does **not** include:
+The seed registry currently contains 12 declarative source references spanning Argentine and Andean public sources, global terrain/OSM context, research references and a public human-signal source.
 
-- live web or dataset ingestion;
-- Reddit scraping;
-- scheduled source health checks;
-- a database, API, CLI, or UI;
-- GeoPlatform or FleetFlow integration;
-- transitability or route-safety decisions;
-- automatic evidence promotion;
-- synthetic confidence or risk scoring.
+Examples include:
 
-Those capabilities can be added later through adapters without weakening the contract boundaries established here.
+- SEGEMAR / SIGAM;
+- SIACAM;
+- San Juan mining cadastre;
+- DNV routes;
+- IGN administrative context;
+- OpenStreetMap;
+- SERNAGEOMIN;
+- INGEMMET / GEOCATMIN;
+- Copernicus DEM;
+- AutoMine and AMPilot as research references;
+- Reddit as a public human-signal source only.
 
-## Development
+Registration is metadata, not a liveness claim. Unknown reuse terms remain `unknown_review_required` instead of being guessed open.
 
-Runtime dependencies: **none**.
+---
 
-Development dependency:
+## What it deliberately does not do
 
-```text
-pytest>=8,<9
-```
+Andes Context OS is not a live territorial intelligence platform by itself.
 
-Run the full test suite:
+It does not currently:
+
+- crawl the web, GitHub or a private vault;
+- scrape Reddit;
+- recursively discover neighboring documents;
+- summarize private source content with an LLM;
+- use embeddings or fuzzy matching;
+- infer route safety or transitability;
+- promote evidence automatically;
+- produce global confidence, risk or truth scores;
+- run a database, public API or UI;
+- authorize travel, access, outreach or operations.
+
+Those capabilities can be implemented around the contracts later without weakening the evidence boundaries established here.
+
+---
+
+## Quick start
+
+Requires **Python 3.11+**.
 
 ```bash
+python -m pip install -e ".[dev]"
 pytest -q
 ```
 
-GitHub Actions runs the same suite on pushes and pull requests with Python 3.11.
+Runtime dependencies are intentionally **empty**. The development dependency is `pytest>=8,<9`.
+
+Load the seed registry and inspect its deterministic identity:
+
+```python
+from andes_context_os.registry import SourceRegistry
+
+registry = SourceRegistry.load("data/source_registry.v0.1.json")
+print(registry.registry_hash)
+```
+
+---
+
+## Verification
+
+The public repository verifies the same dependency-light Python core used by the contracts.
+
+Recent merged work progressed through TDD and fresh CI, including the V0.3 authorized-context producer with deterministic success/failure behavior, privacy guards and exact source-receipt checks.
+
+The important acceptance criterion is not simply that a resolver can return content. It is that **only the exact authorized source can produce the expected context record and receipt**.
+
+---
+
+## Design documentation
+
+Deep implementation and design detail lives outside the landing page:
+
+- `docs/superpowers/specs/2026-08-30-andes-context-os-v0.2-internal-context-adapter-design.md`
+- `docs/superpowers/plans/2026-08-30-andes-context-os-v0.2-internal-context-adapter.md`
+- V0.3 authorized-context producer design / implementation records under `docs/superpowers/`
+
+The README focuses on the product boundary; the specs preserve the contract-level detail.
+
+---
 
 ## License
 
