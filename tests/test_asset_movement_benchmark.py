@@ -60,7 +60,52 @@ def test_research_loop_dogfood_persists_followup_state():
     assert cauchari.status.value == "researching"
     assert "evidence:co:lar:2026-08-11:ganfeng-equipment" in cauchari.supporting_evidence_refs
 
-    assert hypothesis_map["opportunity:hmw:ramp-up-support"].status.value == "proposed"
+    assert "opportunity:hmw:ramp-up-support" in hypothesis_map
+
+
+def test_hmw_second_research_pass_narrows_without_auto_support():
+    assets, actors, movements, hypotheses = load_valid_objects()
+    evidence_candidates = load_asset_movement_evidence_fixture(DOGFOOD)
+
+    validate_asset_movement_benchmark(
+        assets=assets,
+        actors=actors,
+        movements=movements,
+        evidence_candidates=evidence_candidates,
+        opportunity_hypotheses=hypotheses,
+    )
+
+    actor_ids = {item.actor_id for item in actors}
+    assert "actor:authium" in actor_ids
+    assert "actor:hmw-independent-lab" not in actor_ids
+
+    evidence_ids = {item.candidate_id for item in evidence_candidates}
+    assert {
+        "evidence:hmw:authium:operating-offtake",
+        "evidence:hmw:galan:2026-q2:independent-lab",
+        "evidence:hmw:galan:2026-q2:phase1-expansion",
+    } <= evidence_ids
+
+    movement_ids = {item.movement_id for item in movements}
+    assert {
+        "movement:hmw:partnership:authium",
+        "movement:hmw:validation:independent-lab",
+        "movement:hmw:expansion:2026-q3-plan",
+    } <= movement_ids
+
+    hmw = {
+        item.hypothesis_id: item for item in hypotheses
+    }["opportunity:hmw:ramp-up-support"]
+    assert hmw.status.value == "researching"
+    assert {
+        "evidence:hmw:authium:operating-offtake",
+        "evidence:hmw:galan:2026-q2:independent-lab",
+        "evidence:hmw:galan:2026-q2:phase1-expansion",
+    } <= set(hmw.supporting_evidence_refs)
+    assert "Current operating contractor model." not in hmw.missing_context
+    assert any("laboratory" in item.lower() for item in hmw.missing_context)
+    assert any("pond" in item.lower() for item in hmw.missing_context)
+    assert hmw.reviewed_at is None
 
 
 def test_validator_accepts_resolved_three_asset_benchmark():

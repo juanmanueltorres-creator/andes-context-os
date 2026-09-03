@@ -37,6 +37,15 @@
   },
   {
     "contract_version": "0.1",
+    "actor_id": "actor:authium",
+    "canonical_name": "Authium Ltd.",
+    "actor_kind": "organization",
+    "jurisdiction": "Australia / Argentina",
+    "external_refs": ["https://authium.com.au/"],
+    "notes": ["Named in public HMW disclosures as operating, supply and offtake counterparty for the processing plant."]
+  },
+  {
+    "contract_version": "0.1",
     "actor_id": "actor:lithium-argentina",
     "canonical_name": "Lithium Argentina AG",
     "actor_kind": "organization",
