@@ -47,7 +47,7 @@ class OpportunityHypothesis:
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "OpportunityHypothesis":
-        fields = {
+        required = {
             "contract_version",
             "hypothesis_id",
             "asset_id",
@@ -60,9 +60,9 @@ class OpportunityHypothesis:
             "missing_context",
             "status",
             "created_at",
-            "reviewed_at",
         }
-        require_fields(payload, required=fields, allowed=fields)
+        allowed = required | {"reviewed_at"}
+        require_fields(payload, required=required, allowed=allowed)
 
         version = require_text(payload["contract_version"], "contract_version")
         if version != CONTRACT_VERSION:
@@ -84,7 +84,7 @@ class OpportunityHypothesis:
                 raise ValueError(f"{field} contains duplicates")
 
         status = _enum_value(OpportunityStatus, payload["status"], "status")
-        raw_reviewed_at = payload["reviewed_at"]
+        raw_reviewed_at = payload.get("reviewed_at")
         reviewed_at = (
             require_aware_iso8601(raw_reviewed_at, "reviewed_at")
             if raw_reviewed_at is not None
