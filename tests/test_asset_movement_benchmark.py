@@ -75,20 +75,36 @@ def test_hmw_second_research_pass_narrows_without_auto_support():
         opportunity_hypotheses=hypotheses,
     )
 
-    assert "actor:authium" in {item.actor_id for item in actors}
-    assert "evidence:hmw:authium:operating-offtake" in {
-        item.candidate_id for item in evidence_candidates
-    }
-    assert "movement:hmw:partnership:authium" in {
-        item.movement_id for item in movements
-    }
+    actor_ids = {item.actor_id for item in actors}
+    assert "actor:authium" in actor_ids
+    assert "actor:hmw-independent-lab" not in actor_ids
+
+    evidence_ids = {item.candidate_id for item in evidence_candidates}
+    assert {
+        "evidence:hmw:authium:operating-offtake",
+        "evidence:hmw:galan:2026-q2:independent-lab",
+        "evidence:hmw:galan:2026-q2:phase1-expansion",
+    } <= evidence_ids
+
+    movement_ids = {item.movement_id for item in movements}
+    assert {
+        "movement:hmw:partnership:authium",
+        "movement:hmw:validation:independent-lab",
+        "movement:hmw:expansion:2026-q3-plan",
+    } <= movement_ids
 
     hmw = {
         item.hypothesis_id: item for item in hypotheses
     }["opportunity:hmw:ramp-up-support"]
     assert hmw.status.value == "researching"
-    assert "evidence:hmw:authium:operating-offtake" in hmw.supporting_evidence_refs
+    assert {
+        "evidence:hmw:authium:operating-offtake",
+        "evidence:hmw:galan:2026-q2:independent-lab",
+        "evidence:hmw:galan:2026-q2:phase1-expansion",
+    } <= set(hmw.supporting_evidence_refs)
     assert "Current operating contractor model." not in hmw.missing_context
+    assert any("laboratory" in item.lower() for item in hmw.missing_context)
+    assert any("pond" in item.lower() for item in hmw.missing_context)
     assert hmw.reviewed_at is None
 
 
