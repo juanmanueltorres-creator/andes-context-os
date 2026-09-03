@@ -63,6 +63,35 @@ def test_research_loop_dogfood_persists_followup_state():
     assert hypothesis_map["opportunity:hmw:ramp-up-support"].status.value == "proposed"
 
 
+def test_hmw_second_research_pass_narrows_without_auto_support():
+    assets, actors, movements, hypotheses = load_valid_objects()
+    evidence_candidates = load_asset_movement_evidence_fixture(DOGFOOD)
+
+    validate_asset_movement_benchmark(
+        assets=assets,
+        actors=actors,
+        movements=movements,
+        evidence_candidates=evidence_candidates,
+        opportunity_hypotheses=hypotheses,
+    )
+
+    assert "actor:authium" in {item.actor_id for item in actors}
+    assert "evidence:hmw:authium:operating-offtake" in {
+        item.candidate_id for item in evidence_candidates
+    }
+    assert "movement:hmw:partnership:authium" in {
+        item.movement_id for item in movements
+    }
+
+    hmw = {
+        item.hypothesis_id: item for item in hypotheses
+    }["opportunity:hmw:ramp-up-support"]
+    assert hmw.status.value == "researching"
+    assert "evidence:hmw:authium:operating-offtake" in hmw.supporting_evidence_refs
+    assert "Current operating contractor model." not in hmw.missing_context
+    assert hmw.reviewed_at is None
+
+
 def test_validator_accepts_resolved_three_asset_benchmark():
     assets, actors, movements, hypotheses = load_valid_objects()
     validate_asset_movement_benchmark(
