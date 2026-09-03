@@ -27,13 +27,22 @@
     "hypothesis_id": "opportunity:hmw:ramp-up-support",
     "asset_id": "asset:ar:li:hombre-muerto-oeste",
     "trigger_movement_refs": ["movement:hmw:stage-change:2026-q2"],
-    "actor_refs": ["actor:galan-lithium"],
+    "actor_refs": ["actor:galan-lithium", "actor:authium"],
     "need_category": "ramp_up_support",
-    "statement": "Production ramp-up and planned capacity growth may create service needs around operating optimisation, laboratory QA/QC, pond works or plant support.",
-    "supporting_evidence_refs": [],
-    "assumptions": ["Some ramp-up or expansion scopes may be externally sourced rather than fully internal."],
-    "missing_context": ["Current operating contractor model.", "Laboratory and QA/QC supplier arrangements.", "Scope owners for planned pond works."],
-    "status": "proposed",
+    "statement": "Production ramp-up and planned capacity growth may create externally addressable QA/QC, pond-work or plant-support scopes outside the processing-plant operating, supply and offtake role already attributed to Authium.",
+    "supporting_evidence_refs": [
+      "evidence:hmw:authium:operating-offtake",
+      "evidence:hmw:galan:2026-q2:independent-lab",
+      "evidence:hmw:galan:2026-q2:phase1-expansion"
+    ],
+    "assumptions": ["At least one QA/QC, pond-work or plant-support scope outside Authium's disclosed processing-plant role remains externally sourced or otherwise worth investigating."],
+    "missing_context": [
+      "Identity and commercial arrangement of the independent laboratory used for processed-product assays.",
+      "Whether ongoing commercial-production QA/QC remains external and under the same laboratory provider.",
+      "Pond-work scope owner, procurement model, contractor identity and actual commencement status for the planned 4.0 to 5.2 ktpa expansion.",
+      "Which plant-support scopes remain outside Authium's Operating Agreement and supply role."
+    ],
+    "status": "researching",
     "created_at": "2026-09-02T22:10:00-03:00",
     "reviewed_at": null
   },
