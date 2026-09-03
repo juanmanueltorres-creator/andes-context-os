@@ -120,6 +120,32 @@ The current implementation includes the V0.2 internal-context boundary and the V
 
 ---
 
+## V0.2 — Internal Context Adapter
+
+V0.2 selects explicitly curated records from a **local deterministic catalog** using exact categorical and territorial matching.
+
+It **does not read GitHub or the private vault**. Repository and vault access remain outside the public core and must be supplied through explicit authorized boundaries.
+
+The contract keeps a strict distinction:
+
+```text
+internal context match != evidence validation
+```
+
+A matched internal note can provide context for research, but it does not become current operational evidence automatically.
+
+---
+
+## V0.3 — Authorized Context Producer
+
+V0.3 resolves **exact authorized references** through an injected resolver, verifies source identity/content hashes when pinned, and emits curated internal-context records plus source receipts.
+
+It **does not search GitHub or the private vault**. The manifest decides what may be resolved; the resolver never expands its own scope.
+
+The producer preserves another strict boundary: **source content is not copied into the produced catalog**. Source bytes are used only to confirm exact resolution and produce provenance receipts; curated semantic metadata remains explicit.
+
+---
+
 ## Exact territory instead of fuzzy geography
 
 Territorial references are typed so equal-looking identifiers cannot silently cross boundaries:
