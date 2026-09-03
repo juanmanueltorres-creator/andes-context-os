@@ -4,6 +4,7 @@ import pytest
 
 from andes_context_os.asset_movement_benchmark import (
     canonical_asset_movement_projection,
+    load_asset_movement_evidence_fixture,
     load_asset_movement_fixture,
     validate_asset_movement_benchmark,
 )
@@ -89,6 +90,50 @@ PUBLIC_EVIDENCE = (
 
 def load_valid_objects():
     return load_asset_movement_fixture(DOGFOOD)
+
+
+def test_research_loop_dogfood_persists_followup_state():
+    assets, actors, movements, hypotheses = load_valid_objects()
+    evidence_candidates = load_asset_movement_evidence_fixture(DOGFOOD)
+
+    validate_asset_movement_benchmark(
+        assets=assets,
+        actors=actors,
+        movements=movements,
+        evidence_candidates=evidence_candidates,
+        opportunity_hypotheses=hypotheses,
+    )
+
+    evidence_ids = {item.candidate_id for item in evidence_candidates}
+    assert {
+        "evidence:rg:noa:2026-05-12:hidrotec-framework",
+        "evidence:rg:noa:2026-06-16:hatch-arrangement",
+        "evidence:rg:noa:2026-07-16:drilling-progress",
+        "evidence:co:lar:2026-08-11:ganfeng-equipment",
+    } <= evidence_ids
+
+    assert "actor:hatch" in {item.actor_id for item in actors}
+    assert {
+        "movement:rg:contractor:2026-05-12",
+        "movement:rg:consulting:2026-06-16",
+        "movement:rg:drilling:2026-07-16",
+    } <= {item.movement_id for item in movements}
+
+    hypothesis_map = {item.hypothesis_id: item for item in hypotheses}
+    rio_grande = hypothesis_map["opportunity:rg:external-field-services"]
+    assert rio_grande.status.value == "researching"
+    assert {
+        "evidence:rg:noa:2026-05-12:hidrotec-framework",
+        "evidence:rg:noa:2026-06-16:hatch-arrangement",
+        "evidence:rg:noa:2026-07-16:drilling-progress",
+    } <= set(rio_grande.supporting_evidence_refs)
+    assert "Current supplier roster." not in rio_grande.missing_context
+
+    cauchari = hypothesis_map["opportunity:co:stage2-supplier-scope"]
+    assert cauchari.status.value == "researching"
+    assert "evidence:co:lar:2026-08-11:ganfeng-equipment" in cauchari.supporting_evidence_refs
+
+    assert hypothesis_map["opportunity:hmw:ramp-up-support"].status.value == "proposed"
 
 
 def test_validator_accepts_resolved_three_asset_benchmark():
