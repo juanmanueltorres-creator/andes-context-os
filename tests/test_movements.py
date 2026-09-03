@@ -6,6 +6,7 @@ from andes_context_os.movements import (
     MovementReviewState,
     MovementType,
 )
+from andes_context_os.opportunities import OpportunityHypothesis, OpportunityStatus
 
 
 def movement_payload(**overrides):
@@ -27,6 +28,26 @@ def movement_payload(**overrides):
         "reviewed_at": "2026-09-02T22:05:00-03:00",
         "derived_from_movement_ids": [],
         "limitations": ["Company disclosure; no inference about unannounced procurement."],
+    }
+    payload.update(overrides)
+    return payload
+
+
+def hypothesis_payload(**overrides):
+    payload = {
+        "contract_version": "0.1",
+        "hypothesis_id": "opportunity:rg:external-field-services",
+        "asset_id": "asset:ar:li:rio-grande-noa",
+        "trigger_movement_refs": ["movement:rg:drilling:2026-05-21"],
+        "actor_refs": ["actor:noa-lithium"],
+        "need_category": "field_services",
+        "statement": "Continued PFS work may create additional demand for externally procured field services.",
+        "supporting_evidence_refs": [],
+        "assumptions": ["At least part of future field work is procured externally."],
+        "missing_context": ["Current supplier roster and procurement model."],
+        "status": "proposed",
+        "created_at": "2026-09-02T22:10:00-03:00",
+        "reviewed_at": None,
     }
     payload.update(overrides)
     return payload
@@ -73,3 +94,33 @@ def test_unreviewed_movement_rejects_reviewed_at():
 def test_movement_rejects_self_lineage():
     with pytest.raises(ValueError, match="cannot derive from itself"):
         Movement.from_dict(movement_payload(derived_from_movement_ids=["movement:rg:drilling:2026-05-21"]))
+
+
+def test_proposed_hypothesis_round_trip_preserves_uncertainty():
+    item = OpportunityHypothesis.from_dict(hypothesis_payload())
+    assert item.status == OpportunityStatus.PROPOSED
+    assert item.assumptions == ("At least part of future field work is procured externally.",)
+    assert item.missing_context == ("Current supplier roster and procurement model.",)
+    assert item.to_dict() == hypothesis_payload()
+
+
+def test_hypothesis_requires_trigger_movement():
+    with pytest.raises(ValueError, match="trigger_movement_refs must not be empty"):
+        OpportunityHypothesis.from_dict(hypothesis_payload(trigger_movement_refs=[]))
+
+
+def test_hypothesis_rejects_duplicate_actor_refs():
+    with pytest.raises(ValueError, match="actor_refs contains duplicates"):
+        OpportunityHypothesis.from_dict(hypothesis_payload(actor_refs=["actor:noa-lithium", "actor:noa-lithium"]))
+
+
+def test_supported_hypothesis_requires_supporting_evidence_and_reviewed_at_locally():
+    with pytest.raises(ValueError, match="supported requires supporting_evidence_refs"):
+        OpportunityHypothesis.from_dict(hypothesis_payload(status="supported", reviewed_at="2026-09-02T22:15:00-03:00"))
+    with pytest.raises(ValueError, match="reviewed_at is required"):
+        OpportunityHypothesis.from_dict(hypothesis_payload(status="supported", supporting_evidence_refs=["evidence:extra"]))
+
+
+def test_proposed_hypothesis_rejects_reviewed_at():
+    with pytest.raises(ValueError, match="reviewed_at must be null"):
+        OpportunityHypothesis.from_dict(hypothesis_payload(reviewed_at="2026-09-02T22:15:00-03:00"))
