@@ -1,0 +1,58 @@
+[
+  {
+    "contract_version": "0.1",
+    "movement_id": "movement:rg:drilling:2026-05-21",
+    "asset_id": "asset:ar:li:rio-grande-noa",
+    "movement_type": "drilling",
+    "observed_at": "2026-09-02T22:00:00-03:00",
+    "actor_refs": [
+      {"actor_id": "actor:noa-lithium", "role": "operator", "notes": []},
+      {"actor_id": "actor:hidrotec", "role": "contractor", "notes": []}
+    ],
+    "evidence_candidate_refs": ["evidence:rg:noa:2026-05-21"],
+    "factual_summary": "NOA reported completion of mobilization of two Hidrotec drilling rigs for the 2026 Rio Grande exploration campaign supporting work toward PFS.",
+    "previous_state": null,
+    "new_state": null,
+    "review_state": "reviewed",
+    "reviewed_at": "2026-09-02T22:05:00-03:00",
+    "derived_from_movement_ids": [],
+    "limitations": ["First-party company disclosure; does not establish future procurement beyond the named work."]
+  },
+  {
+    "contract_version": "0.1",
+    "movement_id": "movement:hmw:stage-change:2026-q2",
+    "asset_id": "asset:ar:li:hombre-muerto-oeste",
+    "movement_type": "stage_change",
+    "observed_at": "2026-09-02T22:00:00-03:00",
+    "actor_refs": [
+      {"actor_id": "actor:galan-lithium", "role": "operator", "notes": []}
+    ],
+    "evidence_candidate_refs": ["evidence:hmw:galan:2026-07-30"],
+    "factual_summary": "Galan reported completion of wet commissioning, first processed lithium chloride and production ramp-up at Hombre Muerto Oeste.",
+    "previous_state": "construction / commissioning",
+    "new_state": "production ramp-up",
+    "review_state": "reviewed",
+    "reviewed_at": "2026-09-02T22:05:00-03:00",
+    "derived_from_movement_ids": [],
+    "limitations": ["Stage wording is a bounded research interpretation of the cited quarterly disclosure, not a regulatory status classification."]
+  },
+  {
+    "contract_version": "0.1",
+    "movement_id": "movement:co:expansion:2026-08-11",
+    "asset_id": "asset:ar:li:cauchari-olaroz",
+    "movement_type": "expansion",
+    "observed_at": "2026-09-02T22:00:00-03:00",
+    "actor_refs": [
+      {"actor_id": "actor:lithium-argentina", "role": "partner", "notes": []},
+      {"actor_id": "actor:ganfeng-lithium", "role": "partner", "notes": []}
+    ],
+    "evidence_candidate_refs": ["evidence:co:lar:2026-08-11"],
+    "factual_summary": "Lithium Argentina reported RIGI approval and early Stage 2 development activities at Cauchari-Olaroz, including additional production wells, infrastructure and site preparation, while advancing a modular DLE approach with Ganfeng.",
+    "previous_state": null,
+    "new_state": null,
+    "review_state": "reviewed",
+    "reviewed_at": "2026-09-02T22:05:00-03:00",
+    "derived_from_movement_ids": [],
+    "limitations": ["The disclosure identifies planned and early development activities; it does not identify which future scopes are externally procured."]
+  }
+]

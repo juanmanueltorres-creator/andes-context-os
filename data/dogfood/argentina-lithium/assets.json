@@ -1,0 +1,35 @@
+[
+  {
+    "contract_version": "0.1",
+    "asset_id": "asset:ar:li:rio-grande-noa",
+    "name": "Río Grande / NOA Lithium",
+    "asset_type": "mining_project",
+    "commodity": "lithium",
+    "territorial_scope_ref": "project:atlas-geotech:258",
+    "baseline_source_id": "atlas-geotech",
+    "baseline_record_ref": "project_id:258",
+    "notes": ["Atlas Geotech baseline identity only; mutable state is researched separately."]
+  },
+  {
+    "contract_version": "0.1",
+    "asset_id": "asset:ar:li:hombre-muerto-oeste",
+    "name": "Hombre Muerto Oeste",
+    "asset_type": "mining_project",
+    "commodity": "lithium",
+    "territorial_scope_ref": "project:atlas-geotech:137",
+    "baseline_source_id": "atlas-geotech",
+    "baseline_record_ref": "project_id:137",
+    "notes": ["Atlas Geotech baseline identity only; mutable state is researched separately."]
+  },
+  {
+    "contract_version": "0.1",
+    "asset_id": "asset:ar:li:cauchari-olaroz",
+    "name": "Cauchari-Olaroz",
+    "asset_type": "mining_project",
+    "commodity": "lithium",
+    "territorial_scope_ref": "project:atlas-geotech:52",
+    "baseline_source_id": "atlas-geotech",
+    "baseline_record_ref": "project_id:52",
+    "notes": ["Atlas Geotech baseline identity only; mutable state is researched separately."]
+  }
+]

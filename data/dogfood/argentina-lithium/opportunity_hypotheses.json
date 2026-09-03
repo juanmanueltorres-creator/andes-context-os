@@ -1,0 +1,47 @@
+[
+  {
+    "contract_version": "0.1",
+    "hypothesis_id": "opportunity:rg:external-field-services",
+    "asset_id": "asset:ar:li:rio-grande-noa",
+    "trigger_movement_refs": ["movement:rg:drilling:2026-05-21"],
+    "actor_refs": ["actor:noa-lithium"],
+    "need_category": "field_services",
+    "statement": "Continued work toward PFS may create additional demand for externally procured drilling, hydrogeological or related field services.",
+    "supporting_evidence_refs": [],
+    "assumptions": ["At least part of future field work would be procured from external providers."],
+    "missing_context": ["Current supplier roster.", "Procurement model and contract duration.", "Remaining 2026-2027 field-work scope."],
+    "status": "proposed",
+    "created_at": "2026-09-02T22:10:00-03:00",
+    "reviewed_at": null
+  },
+  {
+    "contract_version": "0.1",
+    "hypothesis_id": "opportunity:hmw:ramp-up-support",
+    "asset_id": "asset:ar:li:hombre-muerto-oeste",
+    "trigger_movement_refs": ["movement:hmw:stage-change:2026-q2"],
+    "actor_refs": ["actor:galan-lithium"],
+    "need_category": "ramp_up_support",
+    "statement": "Production ramp-up and planned capacity growth may create service needs around operating optimisation, laboratory QA/QC, pond works or plant support.",
+    "supporting_evidence_refs": [],
+    "assumptions": ["Some ramp-up or expansion scopes may be externally sourced rather than fully internal."],
+    "missing_context": ["Current operating contractor model.", "Laboratory and QA/QC supplier arrangements.", "Scope owners for planned pond works."],
+    "status": "proposed",
+    "created_at": "2026-09-02T22:10:00-03:00",
+    "reviewed_at": null
+  },
+  {
+    "contract_version": "0.1",
+    "hypothesis_id": "opportunity:co:stage2-supplier-scope",
+    "asset_id": "asset:ar:li:cauchari-olaroz",
+    "trigger_movement_refs": ["movement:co:expansion:2026-08-11"],
+    "actor_refs": ["actor:lithium-argentina", "actor:ganfeng-lithium"],
+    "need_category": "expansion_services",
+    "statement": "Stage 2 early development may create externally addressable scopes around wells, infrastructure, site preparation, engineering or equipment integration.",
+    "supporting_evidence_refs": [],
+    "assumptions": ["At least one Stage 2 scope may be open to external suppliers or contractors."],
+    "missing_context": ["Stage 2 procurement model.", "Existing framework agreements.", "Packages retained internally by Ganfeng or Minera Exar."],
+    "status": "proposed",
+    "created_at": "2026-09-02T22:10:00-03:00",
+    "reviewed_at": null
+  }
+]

@@ -120,6 +120,63 @@ The current implementation includes the V0.2 internal-context boundary and the V
 
 ---
 
+## V0.2 — Internal Context Adapter
+
+V0.2 selects explicitly curated records from a **local deterministic catalog** using exact categorical and territorial matching.
+
+It **does not read GitHub or the private vault**. Repository and vault access remain outside the public core and must be supplied through explicit authorized boundaries.
+
+The contract keeps a strict distinction:
+
+```text
+internal context match != evidence validation
+```
+
+A matched internal note can provide context for research, but it does not become current operational evidence automatically.
+
+---
+
+## V0.3 — Authorized Context Producer
+
+V0.3 resolves **exact authorized references** through an injected resolver, verifies source identity/content hashes when pinned, and emits curated internal-context records plus source receipts.
+
+It **does not search GitHub or the private vault**. The manifest decides what may be resolved; the resolver never expands its own scope.
+
+The producer preserves another strict boundary: **source content is not copied into the produced catalog**. Source bytes are used only to confirm exact resolution and produce provenance receipts; curated semantic metadata remains explicit.
+
+---
+
+## V0.4 experimental asset-movement dogfood
+
+V0.4 adds a small interpretation layer above evidence for one controlled benchmark: three Argentine lithium assets seeded from exact Atlas Geotech baseline references.
+
+```text
+Asset baseline
+  ↓
+EvidenceCandidate
+  ↓
+Movement + actor roles
+  ↓
+OpportunityHypothesis
+  ↓
+explicit assumptions + missing context
+```
+
+The benchmark currently covers Río Grande / NOA Lithium, Hombre Muerto Oeste and Cauchari-Olaroz. It tests whether meaningful project changes can be represented reproducibly without turning a public signal into verified demand.
+
+The boundary remains strict:
+
+```text
+baseline record != current state
+movement != opportunity
+opportunity hypothesis != confirmed demand
+actor participation != durable relationship
+```
+
+V0.4 **does not add live scraping**, a relationship graph, contact discovery, outreach, a database, a UI, scoring, agents or MCP. The checked-in hypotheses remain research prompts with explicit assumptions and missing context, not proof of procurement intent or willingness to pay.
+
+---
+
 ## Exact territory instead of fuzzy geography
 
 Territorial references are typed so equal-looking identifiers cannot silently cross boundaries:
