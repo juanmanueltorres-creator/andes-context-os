@@ -184,3 +184,34 @@ def test_every_movement_has_evidence_and_every_hypothesis_has_trigger():
     _, _, movements, hypotheses = load_asset_movement_fixture(DOGFOOD)
     assert all(item.evidence_candidate_refs for item in movements)
     assert all(item.trigger_movement_refs for item in hypotheses)
+
+
+def test_v04_dogfood_files_do_not_contain_private_or_action_fields():
+    banned = {
+        "email",
+        "gmail",
+        "apollo",
+        "phone",
+        "contact_name",
+        "send_request",
+        "approved_to_send",
+        "route_authorized",
+        "safe_to_travel",
+        "community_approved",
+    }
+    for path in DOGFOOD.glob("*.json"):
+        text = path.read_text(encoding="utf-8").lower()
+        assert all(term not in text for term in banned)
+
+
+def test_pyproject_keeps_runtime_dependencies_empty():
+    text = Path("pyproject.toml").read_text(encoding="utf-8")
+    assert "dependencies = []" in text
+
+
+def test_readme_describes_v04_as_experimental_dogfood():
+    text = Path("README.md").read_text(encoding="utf-8")
+    assert "## V0.4 experimental asset-movement dogfood" in text
+    assert "movement != opportunity" in text
+    assert "opportunity hypothesis != confirmed demand" in text
+    assert "does not add live scraping" in text
