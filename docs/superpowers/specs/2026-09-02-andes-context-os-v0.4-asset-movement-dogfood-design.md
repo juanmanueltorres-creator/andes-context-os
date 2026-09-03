@@ -5,6 +5,8 @@ Status: review
 Proposed branch: `feat/v0.4-asset-movement-dogfood`
 Applies to: Andes Context OS V0.3 public research/evidence core
 
+> **Versioning note:** `V0.4` is the repository feature milestone. New payloads continue to use the repository's existing `CONTRACT_VERSION = "0.1"` unless a separate repository-wide contract-version migration is explicitly designed later.
+
 ## 1. Decision
 
 V0.4 adds a small interpretation layer above the existing research and evidence contracts so Andes Context OS can dogfood one question:
@@ -163,7 +165,9 @@ Therefore `Actor` stores stable identity. Role is recorded in each movement thro
 
 A movement is not raw source content.
 
-It is a reviewed research statement that a meaningful change occurred, linked back to the evidence candidates that support that statement.
+It is a **candidate or reviewed research interpretation** that a meaningful change occurred, linked back to the evidence candidates that support that interpretation.
+
+A movement's `review_state` determines whether an operator has accepted that interpretation for research use.
 
 ### 4.5 Opportunity is explicitly hypothetical
 
@@ -332,7 +336,7 @@ Rules:
 
 - `actor_id` must reference an actor in the benchmark/catalog context used for validation;
 - `role` must parse through `ActorRole`;
-- the same actor may appear more than once across different movements with different roles;
+- the same actor may appear across different movements with different roles;
 - duplicate `(actor_id, role)` pairs inside one movement are rejected.
 
 ### 5.7 `MovementType`
@@ -393,6 +397,7 @@ factual_summary
 previous_state optional
 new_state optional
 review_state
+reviewed_at optional
 derived_from_movement_ids[]
 limitations[]
 ```
@@ -402,13 +407,15 @@ Rules:
 - `asset_id` must reference an existing `Asset` in the validation context;
 - at least one `evidence_candidate_ref` is required;
 - evidence references must be unique;
-- `factual_summary` must be non-empty and must not contain a demand/opportunity claim unsupported by the movement type itself;
-- `observed_at` must be timezone-aware ISO-8601;
+- `factual_summary` must be non-empty;
+- keeping demand/opportunity claims out of `factual_summary` is an operator/fixture acceptance rule, not a parser-level semantic classifier in V0.4;
+- `observed_at` must be timezone-aware ISO-8601 and means **when this movement interpretation was recorded by the research process**, not necessarily the exact time the real-world event occurred;
 - `stage_change` requires both `previous_state` and `new_state`, and the two values must differ;
 - other movement types may optionally include state fields when the source explicitly supports a before/after transition;
+- `reviewed_at` is required for `reviewed`, `rejected` and `superseded` states and must be null for `unreviewed` and `evidence_linked`;
+- `reviewed_at`, when present, must be timezone-aware ISO-8601;
 - `derived_from_movement_ids` cannot contain the movement's own ID;
 - duplicate derived IDs are rejected;
-- a rejected movement cannot be used as the sole trigger for a new supported opportunity hypothesis;
 - unknown fields fail closed.
 
 ### 5.10 `OpportunityStatus`
@@ -454,13 +461,16 @@ Rules:
 - at least one `trigger_movement_ref` is required;
 - trigger movement IDs must be unique;
 - `asset_id` must match the asset referenced by every trigger movement in V0.4;
+- `actor_refs` must be unique and resolve to existing actors in the validation context;
 - `statement` and `need_category` are non-empty;
 - `assumptions` and `missing_context` remain explicit lists and are never silently removed when status changes;
-- `supported` requires at least one `supporting_evidence_ref` in addition to the triggering movement references;
-- `contradicted` requires at least one supporting evidence reference whose research interpretation explains the contradiction outside this contract;
-- `reviewed_at` is required for `supported`, `contradicted` and `discarded`;
+- `supported` requires at least one `supporting_evidence_ref` that is **not merely evidence already used to establish the triggering movement(s)**;
+- `contradicted` requires at least one supporting evidence reference whose research interpretation materially challenges the hypothesis;
+- `reviewed_at` is required for `supported`, `contradicted` and `discarded`, and must be null for `proposed` and `researching`;
 - `created_at` and `reviewed_at`, when present, must be timezone-aware ISO-8601;
 - unknown fields fail closed.
+
+The parser validates local shape. Whether a supporting evidence reference is additional to trigger evidence is checked by the cross-object validator, which has access to both movements and evidence IDs.
 
 ## 6. Existing contracts reused unchanged
 
@@ -603,7 +613,9 @@ It verifies:
 - referenced evidence candidates exist;
 - referenced trigger movements exist;
 - trigger movements belong to the same asset as the hypothesis;
-- rejected movements are not used as sole support for a `supported` hypothesis;
+- opportunity actor refs resolve and are unique;
+- `supported` hypotheses contain at least one evidence reference beyond the evidence already used by all trigger movements;
+- rejected movements cannot be the sole trigger basis for a `supported` hypothesis;
 - duplicate IDs are rejected;
 - duplicate actor-role references inside a movement are rejected;
 - self-referential movement lineage is rejected.
@@ -620,7 +632,8 @@ Examples:
 - unknown field → `ValueError`;
 - missing required reference → validation failure;
 - `stage_change` without two distinct states → validation failure;
-- `supported` hypothesis without supporting evidence → validation failure;
+- reviewed movement without `reviewed_at` → validation failure;
+- `supported` hypothesis without additional supporting evidence → validation failure;
 - duplicate IDs → validation failure;
 - malformed timestamp → validation failure.
 
@@ -671,6 +684,7 @@ Cover:
 - actor-role uniqueness;
 - stage change state requirements;
 - aware timestamps;
+- review-state / `reviewed_at` combinations;
 - self-lineage rejection;
 - rejected/superseded semantics remain explicit.
 
@@ -680,7 +694,8 @@ Cover:
 
 - valid proposed/researching/supported/contradicted/discarded states;
 - at least one trigger movement;
-- supported requires supporting evidence;
+- actor refs resolve and are unique;
+- supported requires evidence beyond trigger evidence;
 - reviewed states require `reviewed_at`;
 - assumptions and missing context survive round-trip;
 - same-asset trigger rule.
@@ -702,11 +717,12 @@ V0.4 is complete when the repository can represent the three benchmark assets an
 
 ```text
 WHAT CHANGED?
-WHEN WAS THE CHANGE OBSERVED?
+WHEN WAS THE CHANGE RECORDED BY THE RESEARCH PROCESS?
 WHICH ACTORS PARTICIPATED?
 WHAT ROLE DID EACH ACTOR PLAY IN THAT MOVEMENT?
 WHICH EVIDENCE CANDIDATES SUPPORT THE MOVEMENT?
 WHAT IS STILL ONLY AN OPPORTUNITY HYPOTHESIS?
+WHAT ADDITIONAL EVIDENCE SUPPORTS THAT HYPOTHESIS?
 WHAT ASSUMPTIONS DOES THAT HYPOTHESIS REQUIRE?
 WHAT CONTEXT IS STILL MISSING?
 ```
