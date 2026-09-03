@@ -1,0 +1,171 @@
+from pathlib import Path
+
+import pytest
+
+from andes_context_os.asset_movement_benchmark import (
+    canonical_asset_movement_projection,
+    load_asset_movement_fixture,
+    validate_asset_movement_benchmark,
+)
+from andes_context_os.evidence import EvidenceCandidate
+from andes_context_os.movements import Movement
+from andes_context_os.opportunities import OpportunityHypothesis
+
+DOGFOOD = Path("data/dogfood/argentina-lithium")
+
+
+def evidence(
+    candidate_id: str,
+    source_id: str,
+    title: str,
+    summary: str,
+    source_reference: str,
+    scope_id: str,
+    authority: str,
+):
+    return EvidenceCandidate.from_dict({
+        "candidate_id": candidate_id,
+        "source_id": source_id,
+        "source_runtime_observation_id": None,
+        "kind": "technical_reference",
+        "title": title,
+        "factual_summary": summary,
+        "source_reference": source_reference,
+        "temporal_context": {"observed_at": "2026-09-02T22:00:00-03:00"},
+        "territorial_relation": {"scope_id": scope_id, "relation": "project-specific"},
+        "quality": {
+            "contract_version": "0.1",
+            "authority": authority,
+            "source_verification": "source_located",
+            "freshness": "current",
+            "spatial_precision": "project_area",
+            "temporal_precision": "day",
+            "coverage": "complete_for_claim",
+            "completeness": "complete_for_contract",
+            "corroboration": "single_source",
+            "method_transparency": "documented",
+            "rights_clarity": "reference_only",
+            "review_state": "source_verified",
+            "limitations": ["Public source reference; interpretation remains bounded to the stated claim."],
+            "missing_context": [],
+        },
+        "payload_ref": None,
+        "corroboration_refs": [],
+        "derived_from_ids": [],
+        "candidate_state": "usable_for_research",
+    })
+
+
+PUBLIC_EVIDENCE = (
+    evidence(
+        "evidence:rg:noa:2026-05-21",
+        "noa-lithium-news",
+        "Rio Grande 2026 drilling mobilization",
+        "NOA reported that Hidrotec completed mobilization of two drilling rigs for the 2026 Rio Grande campaign.",
+        "https://www.noalithium.com/_resources/news/nr-20260521.pdf",
+        "project:atlas-geotech:258",
+        "institutional_publisher",
+    ),
+    evidence(
+        "evidence:hmw:galan:2026-07-30",
+        "galan-quarterly-2026-q2",
+        "HMW transition to producer and ramp-up",
+        "Galan reported completion of wet commissioning, first processed lithium chloride and production ramp-up at HMW.",
+        "https://www.ayondo.com/en/accw/AU0000021461/galan-lithium-limited/quarterly-activities-report-june-2026",
+        "project:atlas-geotech:137",
+        "unknown",
+    ),
+    evidence(
+        "evidence:co:lar:2026-08-11",
+        "lithium-argentina-q2-2026",
+        "Cauchari-Olaroz Stage 2 expansion activities",
+        "Lithium Argentina reported RIGI approval and early development activities for Stage 2, including production wells, infrastructure and site preparation.",
+        "https://investors.lithium-argentina.com/news-releases/news-release-details/lithium-argentina-reports-second-quarter-2026-results",
+        "project:atlas-geotech:52",
+        "institutional_publisher",
+    ),
+)
+
+
+def load_valid_objects():
+    return load_asset_movement_fixture(DOGFOOD)
+
+
+def test_validator_accepts_resolved_three_asset_benchmark():
+    assets, actors, movements, hypotheses = load_valid_objects()
+    validate_asset_movement_benchmark(
+        assets=assets,
+        actors=actors,
+        movements=movements,
+        evidence_candidates=PUBLIC_EVIDENCE,
+        opportunity_hypotheses=hypotheses,
+    )
+
+
+def test_validator_rejects_missing_actor_reference():
+    assets, actors, movements, hypotheses = load_valid_objects()
+    bad = Movement.from_dict({
+        **movements[0].to_dict(),
+        "actor_refs": [{"actor_id": "actor:missing", "role": "operator", "notes": []}],
+    })
+    with pytest.raises(ValueError, match="unknown actor_id: actor:missing"):
+        validate_asset_movement_benchmark(
+            assets=assets,
+            actors=actors,
+            movements=(bad, *movements[1:]),
+            evidence_candidates=PUBLIC_EVIDENCE,
+            opportunity_hypotheses=hypotheses,
+        )
+
+
+def test_validator_rejects_same_asset_violation():
+    assets, actors, movements, hypotheses = load_valid_objects()
+    bad = OpportunityHypothesis.from_dict({
+        **hypotheses[0].to_dict(),
+        "asset_id": "asset:ar:li:cauchari-olaroz",
+    })
+    with pytest.raises(ValueError, match="trigger movement belongs to different asset"):
+        validate_asset_movement_benchmark(
+            assets=assets,
+            actors=actors,
+            movements=movements,
+            evidence_candidates=PUBLIC_EVIDENCE,
+            opportunity_hypotheses=(bad, *hypotheses[1:]),
+        )
+
+
+def test_supported_hypothesis_requires_evidence_beyond_trigger_evidence():
+    assets, actors, movements, hypotheses = load_valid_objects()
+    first = hypotheses[0]
+    trigger_evidence = movements[0].evidence_candidate_refs[0]
+    supported = OpportunityHypothesis.from_dict({
+        **first.to_dict(),
+        "supporting_evidence_refs": [trigger_evidence],
+        "status": "supported",
+        "reviewed_at": "2026-09-02T22:20:00-03:00",
+    })
+    with pytest.raises(ValueError, match="supported hypothesis requires evidence beyond trigger movement evidence"):
+        validate_asset_movement_benchmark(
+            assets=assets,
+            actors=actors,
+            movements=movements,
+            evidence_candidates=PUBLIC_EVIDENCE,
+            opportunity_hypotheses=(supported, *hypotheses[1:]),
+        )
+
+
+def test_canonical_projection_is_deterministic_for_explicit_collections():
+    assets, actors, movements, hypotheses = load_valid_objects()
+    first = canonical_asset_movement_projection(
+        assets=assets,
+        actors=actors,
+        movements=movements,
+        opportunity_hypotheses=hypotheses,
+    )
+    second = canonical_asset_movement_projection(
+        assets=tuple(reversed(assets)),
+        actors=tuple(reversed(actors)),
+        movements=tuple(reversed(movements)),
+        opportunity_hypotheses=tuple(reversed(hypotheses)),
+    )
+    assert first == second
