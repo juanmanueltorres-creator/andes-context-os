@@ -94,6 +94,63 @@
   },
   {
     "contract_version": "0.1",
+    "movement_id": "movement:hmw:partnership:authium",
+    "asset_id": "asset:ar:li:hombre-muerto-oeste",
+    "movement_type": "partnership",
+    "observed_at": "2026-09-03T01:00:00-03:00",
+    "actor_refs": [
+      {"actor_id": "actor:galan-lithium", "role": "owner", "notes": []},
+      {"actor_id": "actor:authium", "role": "operator", "notes": ["Operating Agreement for the processing plant."]},
+      {"actor_id": "actor:authium", "role": "supplier", "notes": ["Authium states it will fund and supply the processing plant."]},
+      {"actor_id": "actor:authium", "role": "offtaker", "notes": ["Offtake Agreement disclosed by Authium."]}
+    ],
+    "evidence_candidate_refs": ["evidence:hmw:authium:operating-offtake"],
+    "factual_summary": "Authium publicly describes definitive Operating and Offtake agreements with Galan and states that it will fund, supply and operate the HMW processing plant.",
+    "previous_state": null,
+    "new_state": null,
+    "review_state": "reviewed",
+    "reviewed_at": "2026-09-03T01:05:00-03:00",
+    "derived_from_movement_ids": [],
+    "limitations": ["This movement records the disclosed plant-level role and does not infer exclusivity over laboratory, pond-construction or other expansion scopes."]
+  },
+  {
+    "contract_version": "0.1",
+    "movement_id": "movement:hmw:validation:independent-lab",
+    "asset_id": "asset:ar:li:hombre-muerto-oeste",
+    "movement_type": "other",
+    "observed_at": "2026-09-03T01:00:00-03:00",
+    "actor_refs": [
+      {"actor_id": "actor:galan-lithium", "role": "owner", "notes": []}
+    ],
+    "evidence_candidate_refs": ["evidence:hmw:galan:2026-q2:independent-lab"],
+    "factual_summary": "Galan reported that processed lithium chloride assays were performed by an independent laboratory and used to validate impurity-separation performance against design specifications.",
+    "previous_state": null,
+    "new_state": null,
+    "review_state": "reviewed",
+    "reviewed_at": "2026-09-03T01:05:00-03:00",
+    "derived_from_movement_ids": ["movement:hmw:stage-change:2026-q2"],
+    "limitations": ["The laboratory is not named in the cited public disclosure, so no laboratory Actor is created."]
+  },
+  {
+    "contract_version": "0.1",
+    "movement_id": "movement:hmw:expansion:2026-q3-plan",
+    "asset_id": "asset:ar:li:hombre-muerto-oeste",
+    "movement_type": "expansion",
+    "observed_at": "2026-09-03T01:00:00-03:00",
+    "actor_refs": [
+      {"actor_id": "actor:galan-lithium", "role": "owner", "notes": []}
+    ],
+    "evidence_candidate_refs": ["evidence:hmw:galan:2026-q2:phase1-expansion"],
+    "factual_summary": "Galan reported planned pond construction for a Phase 1 capacity expansion from 4.0 to 5.2 ktpa LCE, with construction planned to commence in the September 2026 quarter and capacity uplift targeted for H1 2027.",
+    "previous_state": null,
+    "new_state": null,
+    "review_state": "reviewed",
+    "reviewed_at": "2026-09-03T01:05:00-03:00",
+    "derived_from_movement_ids": ["movement:hmw:stage-change:2026-q2"],
+    "limitations": ["The disclosure describes planned work; it does not establish that construction has commenced, who owns the package or whether procurement is open."]
+  },
+  {
+    "contract_version": "0.1",
     "movement_id": "movement:co:expansion:2026-08-11",
     "asset_id": "asset:ar:li:cauchari-olaroz",
     "movement_type": "expansion",
