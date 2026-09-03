@@ -51,6 +51,13 @@ def load_asset_movement_fixture(
     )
 
 
+def load_asset_movement_evidence_fixture(
+    base_dir: str | Path,
+) -> tuple[EvidenceCandidate, ...]:
+    base = Path(base_dir)
+    return _load_array(base / "evidence_candidates.json", EvidenceCandidate.from_dict)
+
+
 def canonical_asset_movement_projection(
     *,
     assets: Iterable[Asset],

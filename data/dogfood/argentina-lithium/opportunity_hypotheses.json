@@ -4,13 +4,21 @@
     "hypothesis_id": "opportunity:rg:external-field-services",
     "asset_id": "asset:ar:li:rio-grande-noa",
     "trigger_movement_refs": ["movement:rg:drilling:2026-05-21"],
-    "actor_refs": ["actor:noa-lithium"],
+    "actor_refs": ["actor:noa-lithium", "actor:hidrotec", "actor:hatch"],
     "need_category": "field_services",
-    "statement": "Continued work toward PFS may create additional demand for externally procured drilling, hydrogeological or related field services.",
-    "supporting_evidence_refs": [],
-    "assumptions": ["At least part of future field work would be procured from external providers."],
-    "missing_context": ["Current supplier roster.", "Procurement model and contract duration.", "Remaining 2026-2027 field-work scope."],
-    "status": "proposed",
+    "statement": "Further work toward PFS may create additional demand for externally procured drilling, hydrogeological or related technical services beyond the scopes already named for Hidrotec and Hatch.",
+    "supporting_evidence_refs": [
+      "evidence:rg:noa:2026-05-12:hidrotec-framework",
+      "evidence:rg:noa:2026-06-16:hatch-arrangement",
+      "evidence:rg:noa:2026-07-16:drilling-progress"
+    ],
+    "assumptions": ["At least one future field or technical scope remains unawarded or can be externally procured beyond the already named Hidrotec and Hatch work."],
+    "missing_context": [
+      "Whether Hidrotec's collaboration framework is exclusive and how long it applies.",
+      "Which 2026-2027 drilling, hydrogeology or process-study scopes remain unawarded.",
+      "Procurement path for scopes outside the named Hidrotec and Hatch work."
+    ],
+    "status": "researching",
     "created_at": "2026-09-02T22:10:00-03:00",
     "reviewed_at": null
   },
@@ -36,11 +44,16 @@
     "trigger_movement_refs": ["movement:co:expansion:2026-08-11"],
     "actor_refs": ["actor:lithium-argentina", "actor:ganfeng-lithium"],
     "need_category": "expansion_services",
-    "statement": "Stage 2 early development may create externally addressable scopes around wells, infrastructure, site preparation, engineering or equipment integration.",
-    "supporting_evidence_refs": [],
-    "assumptions": ["At least one Stage 2 scope may be open to external suppliers or contractors."],
-    "missing_context": ["Stage 2 procurement model.", "Existing framework agreements.", "Packages retained internally by Ganfeng or Minera Exar."],
-    "status": "proposed",
+    "statement": "Stage 2 early development may leave externally addressable scopes around wells, infrastructure, site preparation or engineering, while some advanced process-equipment scope may be covered through Ganfeng capabilities.",
+    "supporting_evidence_refs": ["evidence:co:lar:2026-08-11:ganfeng-equipment"],
+    "assumptions": ["At least one Stage 2 scope outside Ganfeng-led advanced process equipment may be open to external suppliers or contractors."],
+    "missing_context": [
+      "Stage 2 procurement model and package ownership.",
+      "Which advanced process-equipment packages Ganfeng will fabricate or supply.",
+      "Which wells, infrastructure, site-preparation or engineering scopes remain open to third parties.",
+      "Independent confirmation of package allocation beyond the August 11 first-party disclosure."
+    ],
+    "status": "researching",
     "created_at": "2026-09-02T22:10:00-03:00",
     "reviewed_at": null
   }
