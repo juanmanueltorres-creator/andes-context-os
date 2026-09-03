@@ -1,7 +1,7 @@
 # Andes Context OS V0.4 — Asset Movement Dogfood Design
 
 Date: 2026-09-02
-Status: review
+Status: approved
 Proposed branch: `feat/v0.4-asset-movement-dogfood`
 Applies to: Andes Context OS V0.3 public research/evidence core
 
