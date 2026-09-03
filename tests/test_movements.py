@@ -124,3 +124,11 @@ def test_supported_hypothesis_requires_supporting_evidence_and_reviewed_at_local
 def test_proposed_hypothesis_rejects_reviewed_at():
     with pytest.raises(ValueError, match="reviewed_at must be null"):
         OpportunityHypothesis.from_dict(hypothesis_payload(reviewed_at="2026-09-02T22:15:00-03:00"))
+
+
+def test_proposed_hypothesis_allows_reviewed_at_field_to_be_omitted():
+    payload = hypothesis_payload()
+    payload.pop("reviewed_at")
+    item = OpportunityHypothesis.from_dict(payload)
+    assert item.reviewed_at is None
+    assert item.to_dict()["reviewed_at"] is None
