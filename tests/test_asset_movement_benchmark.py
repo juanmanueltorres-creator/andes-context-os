@@ -169,3 +169,18 @@ def test_canonical_projection_is_deterministic_for_explicit_collections():
         opportunity_hypotheses=tuple(reversed(hypotheses)),
     )
     assert first == second
+
+
+def test_dogfood_uses_exact_atlas_baseline_records():
+    assets, _, _, _ = load_asset_movement_fixture(DOGFOOD)
+    assert {item.asset_id: item.baseline_record_ref for item in assets} == {
+        "asset:ar:li:rio-grande-noa": "project_id:258",
+        "asset:ar:li:hombre-muerto-oeste": "project_id:137",
+        "asset:ar:li:cauchari-olaroz": "project_id:52",
+    }
+
+
+def test_every_movement_has_evidence_and_every_hypothesis_has_trigger():
+    _, _, movements, hypotheses = load_asset_movement_fixture(DOGFOOD)
+    assert all(item.evidence_candidate_refs for item in movements)
+    assert all(item.trigger_movement_refs for item in hypotheses)
