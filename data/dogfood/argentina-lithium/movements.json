@@ -20,6 +20,62 @@
   },
   {
     "contract_version": "0.1",
+    "movement_id": "movement:rg:contractor:2026-05-12",
+    "asset_id": "asset:ar:li:rio-grande-noa",
+    "movement_type": "contractor",
+    "observed_at": "2026-09-03T00:30:00-03:00",
+    "actor_refs": [
+      {"actor_id": "actor:noa-lithium", "role": "operator", "notes": []},
+      {"actor_id": "actor:hidrotec", "role": "contractor", "notes": []}
+    ],
+    "evidence_candidate_refs": ["evidence:rg:noa:2026-05-12:hidrotec-framework"],
+    "factual_summary": "NOA reported a strategic collaboration framework with Hidrotec for planned work programs in Argentina, beginning with the first two rotary wells at Rio Grande under a transparent cost framework.",
+    "previous_state": null,
+    "new_state": null,
+    "review_state": "reviewed",
+    "reviewed_at": "2026-09-03T00:35:00-03:00",
+    "derived_from_movement_ids": [],
+    "limitations": ["The framework disclosure does not establish exclusivity, duration or future awards beyond the stated work."]
+  },
+  {
+    "contract_version": "0.1",
+    "movement_id": "movement:rg:consulting:2026-06-16",
+    "asset_id": "asset:ar:li:rio-grande-noa",
+    "movement_type": "consulting",
+    "observed_at": "2026-09-03T00:30:00-03:00",
+    "actor_refs": [
+      {"actor_id": "actor:noa-lithium", "role": "operator", "notes": []},
+      {"actor_id": "actor:hatch", "role": "consultant", "notes": []}
+    ],
+    "evidence_candidate_refs": ["evidence:rg:noa:2026-06-16:hatch-arrangement"],
+    "factual_summary": "NOA reported a strategic arrangement with Hatch for approximately USD 100,000 of services completed for the Rio Grande Pre-PFS Process Development Study.",
+    "previous_state": null,
+    "new_state": null,
+    "review_state": "reviewed",
+    "reviewed_at": "2026-09-03T00:35:00-03:00",
+    "derived_from_movement_ids": [],
+    "limitations": ["The arrangement was disclosed as subject to customary approvals and supports only the named study scope."]
+  },
+  {
+    "contract_version": "0.1",
+    "movement_id": "movement:rg:drilling:2026-07-16",
+    "asset_id": "asset:ar:li:rio-grande-noa",
+    "movement_type": "drilling",
+    "observed_at": "2026-09-03T00:30:00-03:00",
+    "actor_refs": [
+      {"actor_id": "actor:noa-lithium", "role": "operator", "notes": []}
+    ],
+    "evidence_candidate_refs": ["evidence:rg:noa:2026-07-16:drilling-progress"],
+    "factual_summary": "NOA reported continued operation of both Rio Grande drilling rigs, completion of BMR logging at RT-RG26-PW002 and design of the production well after the borehole reached 504 metres.",
+    "previous_state": null,
+    "new_state": null,
+    "review_state": "reviewed",
+    "reviewed_at": "2026-09-03T00:35:00-03:00",
+    "derived_from_movement_ids": ["movement:rg:drilling:2026-05-21"],
+    "limitations": ["The July update does not independently restate contractor identity, so actor participation is limited to NOA in this movement."]
+  },
+  {
+    "contract_version": "0.1",
     "movement_id": "movement:hmw:stage-change:2026-q2",
     "asset_id": "asset:ar:li:hombre-muerto-oeste",
     "movement_type": "stage_change",

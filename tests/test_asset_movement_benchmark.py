@@ -8,84 +8,11 @@ from andes_context_os.asset_movement_benchmark import (
     load_asset_movement_fixture,
     validate_asset_movement_benchmark,
 )
-from andes_context_os.evidence import EvidenceCandidate
 from andes_context_os.movements import Movement
 from andes_context_os.opportunities import OpportunityHypothesis
 
 DOGFOOD = Path("data/dogfood/argentina-lithium")
-
-
-def evidence(
-    candidate_id: str,
-    source_id: str,
-    title: str,
-    summary: str,
-    source_reference: str,
-    scope_id: str,
-    authority: str,
-):
-    return EvidenceCandidate.from_dict({
-        "candidate_id": candidate_id,
-        "source_id": source_id,
-        "source_runtime_observation_id": None,
-        "kind": "technical_reference",
-        "title": title,
-        "factual_summary": summary,
-        "source_reference": source_reference,
-        "temporal_context": {"observed_at": "2026-09-02T22:00:00-03:00"},
-        "territorial_relation": {"scope_id": scope_id, "relation": "project-specific"},
-        "quality": {
-            "contract_version": "0.1",
-            "authority": authority,
-            "source_verification": "source_located",
-            "freshness": "current",
-            "spatial_precision": "project_area",
-            "temporal_precision": "day",
-            "coverage": "complete_for_claim",
-            "completeness": "complete_for_contract",
-            "corroboration": "single_source",
-            "method_transparency": "documented",
-            "rights_clarity": "reference_only",
-            "review_state": "source_verified",
-            "limitations": ["Public source reference; interpretation remains bounded to the stated claim."],
-            "missing_context": [],
-        },
-        "payload_ref": None,
-        "corroboration_refs": [],
-        "derived_from_ids": [],
-        "candidate_state": "usable_for_research",
-    })
-
-
-PUBLIC_EVIDENCE = (
-    evidence(
-        "evidence:rg:noa:2026-05-21",
-        "noa-lithium-news",
-        "Rio Grande 2026 drilling mobilization",
-        "NOA reported that Hidrotec completed mobilization of two drilling rigs for the 2026 Rio Grande campaign.",
-        "https://www.noalithium.com/_resources/news/nr-20260521.pdf",
-        "project:atlas-geotech:258",
-        "institutional_publisher",
-    ),
-    evidence(
-        "evidence:hmw:galan:2026-07-30",
-        "galan-quarterly-2026-q2",
-        "HMW transition to producer and ramp-up",
-        "Galan reported completion of wet commissioning, first processed lithium chloride and production ramp-up at HMW.",
-        "https://www.ayondo.com/en/accw/AU0000021461/galan-lithium-limited/quarterly-activities-report-june-2026",
-        "project:atlas-geotech:137",
-        "unknown",
-    ),
-    evidence(
-        "evidence:co:lar:2026-08-11",
-        "lithium-argentina-q2-2026",
-        "Cauchari-Olaroz Stage 2 expansion activities",
-        "Lithium Argentina reported RIGI approval and early development activities for Stage 2, including production wells, infrastructure and site preparation.",
-        "https://investors.lithium-argentina.com/news-releases/news-release-details/lithium-argentina-reports-second-quarter-2026-results",
-        "project:atlas-geotech:52",
-        "institutional_publisher",
-    ),
-)
+PUBLIC_EVIDENCE = load_asset_movement_evidence_fixture(DOGFOOD)
 
 
 def load_valid_objects():

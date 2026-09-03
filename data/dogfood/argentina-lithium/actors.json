@@ -15,7 +15,16 @@
     "actor_kind": "organization",
     "jurisdiction": "Argentina",
     "external_refs": [],
-    "notes": ["Named by NOA as drilling contractor in the 2026 Rio Grande campaign."]
+    "notes": ["Named by NOA as drilling contractor in the 2026 Rio Grande campaign and collaboration framework."]
+  },
+  {
+    "contract_version": "0.1",
+    "actor_id": "actor:hatch",
+    "canonical_name": "Hatch Ltd.",
+    "actor_kind": "organization",
+    "jurisdiction": "Canada / global",
+    "external_refs": ["https://www.hatch.com/"],
+    "notes": ["Named by NOA for the Rio Grande Pre-PFS Process Development Study."]
   },
   {
     "contract_version": "0.1",
