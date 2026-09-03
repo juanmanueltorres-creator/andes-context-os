@@ -1,0 +1,47 @@
+[
+  {
+    "contract_version": "0.1",
+    "actor_id": "actor:noa-lithium",
+    "canonical_name": "NOA Lithium Brines Inc.",
+    "actor_kind": "organization",
+    "jurisdiction": "Canada / Argentina",
+    "external_refs": ["https://www.noalithium.com/"],
+    "notes": []
+  },
+  {
+    "contract_version": "0.1",
+    "actor_id": "actor:hidrotec",
+    "canonical_name": "Hidrotec S.A.",
+    "actor_kind": "organization",
+    "jurisdiction": "Argentina",
+    "external_refs": [],
+    "notes": ["Named by NOA as drilling contractor in the 2026 Rio Grande campaign."]
+  },
+  {
+    "contract_version": "0.1",
+    "actor_id": "actor:galan-lithium",
+    "canonical_name": "Galan Lithium Limited",
+    "actor_kind": "organization",
+    "jurisdiction": "Australia / Argentina",
+    "external_refs": ["https://galanlithium.com.au/"],
+    "notes": []
+  },
+  {
+    "contract_version": "0.1",
+    "actor_id": "actor:lithium-argentina",
+    "canonical_name": "Lithium Argentina AG",
+    "actor_kind": "organization",
+    "jurisdiction": "Switzerland / Argentina",
+    "external_refs": ["https://www.lithium-argentina.com/"],
+    "notes": []
+  },
+  {
+    "contract_version": "0.1",
+    "actor_id": "actor:ganfeng-lithium",
+    "canonical_name": "Ganfeng Lithium",
+    "actor_kind": "organization",
+    "jurisdiction": "China / Argentina",
+    "external_refs": [],
+    "notes": ["Named by Lithium Argentina as its partner in the Cauchari-Olaroz Stage 2 development work."]
+  }
+]
