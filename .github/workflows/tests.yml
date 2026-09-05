@@ -9,9 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]"
-      - run: pytest -q
+      - name: Run test suite
+        run: pytest -q
+      - name: Compile source tree
+        run: python -m compileall -q src
+      - name: Check pull request diff whitespace
+        if: github.event_name == 'pull_request'
+        run: git diff --check "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"

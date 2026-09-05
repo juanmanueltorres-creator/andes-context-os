@@ -32,6 +32,7 @@ class ResearchActivity(StrEnum):
     ROUTE_PLANNING = "route_planning"
     ROAD_CONDITION = "road_condition"
     FIELD_OPERATIONS = "field_operations"
+    DECISION_SUPPORT = "decision_support"
 
 
 class ScopePrecision(StrEnum):
