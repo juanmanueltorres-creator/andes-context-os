@@ -2,7 +2,12 @@ import math
 
 import pytest
 
-from andes_context_os.research import BBox, ResearchIntent, TerritorialScope
+from andes_context_os.research import (
+    BBox,
+    ResearchActivity,
+    ResearchIntent,
+    TerritorialScope,
+)
 
 VALID_INTENT = {
     "contract_version": "0.1",
@@ -71,6 +76,27 @@ def test_research_intent_preserves_raw_question():
 def test_research_intent_round_trips():
     intent = ResearchIntent.from_dict(VALID_INTENT)
     assert intent.to_dict() == VALID_INTENT
+
+
+def test_research_intent_accepts_decision_support_activity():
+    payload = {**VALID_INTENT, "activity": "decision_support"}
+    intent = ResearchIntent.from_dict(payload)
+    assert intent.activity is ResearchActivity.DECISION_SUPPORT
+    assert intent.to_dict()["activity"] == "decision_support"
+
+
+def test_historical_research_activities_still_round_trip():
+    historical = (
+        "access",
+        "haulage",
+        "mobilization",
+        "route_planning",
+        "road_condition",
+        "field_operations",
+    )
+    for activity in historical:
+        payload = {**VALID_INTENT, "activity": activity}
+        assert ResearchIntent.from_dict(payload).to_dict()["activity"] == activity
 
 
 def test_research_intent_rejects_empty_question():
