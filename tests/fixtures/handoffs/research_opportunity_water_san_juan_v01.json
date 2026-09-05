@@ -1,0 +1,30 @@
+{
+  "contract": "research-opportunity-handoff/v0.1",
+  "handoff_id": "roh:fixture:water-san-juan:001",
+  "created_at": "2026-09-05T01:15:00-03:00",
+  "source": {
+    "system": "andes-context-os",
+    "source_question_ref": "question:fixture:water-san-juan:001",
+    "research_intent_ref": "intent:water-san-juan:001",
+    "hypothesis_ref": "hypothesis:water-san-juan:001"
+  },
+  "candidate": {
+    "kind": "ACTOR_NEED_HYPOTHESIS",
+    "need_category": "water_decision_support",
+    "statement": "A recurring water-management decision within the selected San Juan scope may benefit from consolidated territorial evidence; actor ownership and useful evidence are not yet established.",
+    "actor_refs": [],
+    "evidence_refs": [],
+    "assumptions": [
+      "A recurring water-management decision exists within the selected territorial scope.",
+      "Territorial or satellite evidence could materially change that decision."
+    ],
+    "missing_context": [
+      "Decision owner or materially involved actor",
+      "Current decision cadence and workflow",
+      "Evidence currently used",
+      "Evidence assembly cost or delay",
+      "Procurement or collaboration path"
+    ],
+    "research_status": "researching"
+  }
+}
