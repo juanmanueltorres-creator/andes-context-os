@@ -1,0 +1,33 @@
+{
+  "contract": "question-research-handoff/v0.1",
+  "handoff_id": "qrh:fixture:cartography-san-juan:001",
+  "created_at": "2026-09-05T23:30:00-03:00",
+  "source": {
+    "system": "question-radar",
+    "question_id": "question:fixture:cartography-san-juan:001",
+    "question_profile_ref": null,
+    "decision_id": "decision:fixture:cartography-san-juan:001",
+    "decision_fingerprint": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "question": {
+    "raw": "¿Qué errores de área, escala y percepción introduce el uso de Web Mercator en mapas territoriales de Argentina y San Juan, y qué CRS o proyección conviene utilizar según el objetivo: visualización web, análisis espacial, medición de superficie o comunicación pública?",
+    "canonical": "¿Qué errores de área, escala y percepción introduce el uso de Web Mercator en mapas territoriales de Argentina y San Juan, y qué CRS o proyección conviene utilizar según el objetivo: visualización web, análisis espacial, medición de superficie o comunicación pública?"
+  },
+  "investigation": {
+    "decision": "RESEARCH",
+    "rationale": "La pregunta es investigable y territorializable, pero el handoff no debe inventar un dominio downstream, una proyección universalmente correcta ni una oportunidad comercial.",
+    "next_test": "Validar el handoff en Andes y comprobar si el contrato actual puede representar el dominio cartográfico/geoespacial sin reclasificarlo de forma arbitraria."
+  },
+  "routing": {
+    "kind": "TERRITORIAL_RESEARCH",
+    "destination": "andes-context-os"
+  },
+  "constraints": [
+    "question != problem",
+    "handoff != evidence",
+    "visualization CRS != analytical CRS",
+    "projection choice != institutional intent",
+    "route != opportunity",
+    "No inferir un ResearchDomain soportado si la pregunta no encaja semánticamente."
+  ]
+}
